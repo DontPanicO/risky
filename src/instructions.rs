@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::error::Error;
-use crate::libmem;
+use crate::mem;
 use crate::registers::{Registers, ZeroOrRegister};
 
 const B12_MASK: u32 = bitmask(12);
@@ -551,7 +551,7 @@ pub(crate) fn execute_load(
                 .fetch_mut(regs)
                 .ok_or(Error::InvalidOpCode)?;
             let addr = src1 + instruction.imm.as_u32();
-            *dest = libmem::memr8(memory, addr as usize)? as u32
+            *dest = mem::memr8(memory, addr as usize)? as u32
         }
         1 | 5 => {
             // LH
@@ -561,7 +561,7 @@ pub(crate) fn execute_load(
                 .fetch_mut(regs)
                 .ok_or(Error::InvalidOpCode)?;
             let addr = src1 + instruction.imm.as_u32();
-            *dest = u16::from_le_bytes(libmem::memr16(memory, addr as usize)?) as u32;
+            *dest = u16::from_le_bytes(mem::memr16(memory, addr as usize)?) as u32;
         }
         2 => {
             // LW
@@ -571,7 +571,7 @@ pub(crate) fn execute_load(
                 .fetch_mut(regs)
                 .ok_or(Error::InvalidOpCode)?;
             let addr = src1 + instruction.imm.as_u32();
-            *dest = u32::from_le_bytes(libmem::memr32(memory, addr as usize)?);
+            *dest = u32::from_le_bytes(mem::memr32(memory, addr as usize)?);
         }
         _ => return Err(Error::InvalidOpCode),
     }
@@ -652,7 +652,7 @@ pub(crate) fn execute_store(
             let src2 = unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }
                 .fetch(regs) as u8;
             let addr = src1 + instruction.imm.as_u32();
-            libmem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
+            mem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
         }
         1 => {
             // SH
@@ -661,7 +661,7 @@ pub(crate) fn execute_store(
             let src2 = unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }
                 .fetch(regs) as u16;
             let addr = src1 + instruction.imm.as_u32();
-            libmem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
+            mem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
         }
         2 => {
             // SW
@@ -670,7 +670,7 @@ pub(crate) fn execute_store(
             let src2 =
                 unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }.fetch(regs);
             let addr = src1 + instruction.imm.as_u32();
-            libmem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
+            mem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
         }
         _ => return Err(Error::InvalidOpCode),
     }

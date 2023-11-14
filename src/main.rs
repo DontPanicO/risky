@@ -1,7 +1,7 @@
+pub(crate) mod elf;
 pub(crate) mod error;
 pub(crate) mod instructions;
-pub(crate) mod libelf;
-pub(crate) mod libmem;
+pub(crate) mod mem;
 pub(crate) mod registers;
 
 fn main() {
@@ -12,17 +12,17 @@ fn main() {
         "/home/andreatedeschi/Public/tests/riscv/litmus-tests-riscv/elf-tests/basic/build/function_call_1-O0",
     )
     .unwrap();
-    let elfdata = libelf::load_elf_le(&file).unwrap();
+    let elfdata = elf::load_elf_le(&file).unwrap();
     let mut program_counter: u32 = elfdata.ehdr.e_entry as u32;
     for sg in elfdata.segments().unwrap().iter() {
         let sg_data = elfdata.segment_data(&sg).unwrap();
         println!("{}, {}", sg.p_paddr, sg.p_memsz);
-        libmem::memw(sg_data, &mut memory, sg.p_paddr as usize).unwrap();
+        mem::memw(sg_data, &mut memory, sg.p_paddr as usize).unwrap();
     }
     //...
     loop {
         // fetch instruction (libmem::memr(4)), increase pc of 4
-        let ins = u32::from_le_bytes(libmem::memr32(&memory, program_counter as usize).unwrap());
+        let ins = u32::from_le_bytes(mem::memr32(&memory, program_counter as usize).unwrap());
         // decode and execute instruction
         step(ins, &mut regs, &mut program_counter, &mut memory, &mut link);
         // increment the program counter
