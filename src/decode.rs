@@ -280,7 +280,7 @@ impl U {
     #[inline(always)]
     pub const fn from_u32(value: u32) -> Self {
         Self {
-            imm: (value >> 12) & ((2 << 20) + 1),
+            imm: value & !B12_MASK,
             rd: U5::new_truncate((value >> 7) as u8),
         }
     }

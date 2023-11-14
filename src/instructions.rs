@@ -309,10 +309,10 @@ pub(crate) fn execute_branch(
 
 #[inline(always)]
 pub(crate) fn execute_lui(instruction: U, regs: &mut Registers<u32>) -> Result<(), Error> {
-    let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
+    let dest = ZeroOrRegister::from_u5(instruction.rd)
         .fetch_mut(regs)
         .ok_or(Error::InvalidOpCode)?;
-    *dest = instruction.imm.wrapping_shl(12);
+    *dest = instruction.imm;
     Ok(())
 }
 
@@ -322,9 +322,9 @@ pub(crate) fn execute_auipc(
     regs: &mut Registers<u32>,
     pc: u32,
 ) -> Result<(), Error> {
-    let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
+    let dest = ZeroOrRegister::from_u5(instruction.rd)
         .fetch_mut(regs)
         .ok_or(Error::InvalidOpCode)?;
-    *dest = pc + instruction.imm.wrapping_shl(12);
+    *dest = pc.wrapping_add(instruction.imm);
     Ok(())
 }
