@@ -152,24 +152,43 @@ pub(crate) fn execute_load(
 }
 
 #[inline(always)]
+pub(crate) fn execute_jal(
+    instruction: J,
+    regs: &mut Registers<u32>,
+    pc: &mut u32,
+) -> Result<(), Error> {
+    // TODO: The JAL and JALR instructions will generate an instruction-address-misaligned exception if the target
+    //       address is not aligned to a four-byte boundary. (???)
+
+    if let ZeroOrRegister::Register(reg) = instruction.rd.into() {
+        *regs.get_mut(reg) = *pc + 4;
+    }
+
+    *pc = (*pc).wrapping_add_signed(instruction.imm.sign_extend());
+
+    Ok(())
+}
+
+#[inline(always)]
 pub(crate) fn execute_jalr(
     instruction: I,
     regs: &mut Registers<u32>,
     pc: &mut u32,
-    link: u8,
 ) -> Result<(), Error> {
-    match unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }.fetch_mut(regs) {
-        Some(dest) => {
-            *dest = *pc + 4;
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            *pc += src1
-                + unsafe { core::mem::transmute::<i16, u16>(instruction.imm.sign_extend()) } as u32;
-        }
-        None => {
-            *pc = unsafe { ZeroOrRegister::decode_unchecked(link) }.fetch(regs);
-        }
-    };
+    // TODO: The JAL and JALR instructions will generate an instruction-address-misaligned exception if the target
+    //       address is not aligned to a four-byte boundary. (???)
+
+    let next = ZeroOrRegister::from_u5(instruction.rs1)
+        .fetch(regs)
+        .wrapping_add_signed(instruction.imm.sign_extend() as i32)
+        & !1;
+
+    if let ZeroOrRegister::Register(reg) = ZeroOrRegister::from_u5(instruction.rd) {
+        *regs.get_mut(reg) = *pc + 4;
+    }
+
+    *pc = next;
+
     Ok(())
 }
 
@@ -307,27 +326,5 @@ pub(crate) fn execute_auipc(
         .fetch_mut(regs)
         .ok_or(Error::InvalidOpCode)?;
     *dest = pc + instruction.imm.wrapping_shl(12);
-    Ok(())
-}
-
-#[inline(always)]
-pub(crate) fn execute_jal(
-    instruction: J,
-    regs: &mut Registers<u32>,
-    pc: &mut u32,
-    link: &mut u8,
-) -> Result<(), Error> {
-    match unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }.fetch_mut(regs) {
-        Some(dest) => {
-            *link = instruction.rd.as_u8();
-            *dest = *pc + 4;
-            let offset = instruction.imm.sign_extend();
-            *pc = pc.saturating_add_signed(offset);
-        }
-        None => {
-            let offset = instruction.imm.sign_extend();
-            *pc = pc.saturating_add_signed(offset);
-        }
-    };
     Ok(())
 }
