@@ -237,37 +237,31 @@ pub(crate) fn execute_store(
     regs: &mut Registers<u32>,
     memory: &mut [u8],
 ) -> Result<(), Error> {
-    match instruction.id() {
-        0 => {
-            // SB
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let src2 = unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }
-                .fetch(regs) as u8;
-            let addr = src1 + instruction.imm.as_u32();
-            mem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
-        }
-        1 => {
-            // SH
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let src2 = unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }
-                .fetch(regs) as u16;
-            let addr = src1 + instruction.imm.as_u32();
-            mem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
-        }
-        2 => {
-            // SW
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let src2 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }.fetch(regs);
-            let addr = src1 + instruction.imm.as_u32();
-            mem::memw(&src2.to_le_bytes(), memory, addr as usize)?;
-        }
-        _ => return Err(Error::InvalidOpCode),
+    #[inline(always)]
+    fn exec<const N: usize, F>(
+        instruction: S,
+        regs: &mut Registers<u32>,
+        memory: &mut [u8],
+        f: F,
+    ) -> Result<(), Error>
+    where
+        F: Fn(u32) -> [u8; N],
+    {
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+        let offset = src1.wrapping_add_signed(instruction.imm.sign_extend() as i32) as usize;
+        mem::memw(&f(src2), memory, offset)
     }
-    Ok(())
+
+    match instruction.id() {
+        // SB
+        0b000 => exec(instruction, regs, memory, |n| u8::to_le_bytes(n as u8)),
+        // SH
+        0b001 => exec(instruction, regs, memory, |n| u16::to_le_bytes(n as u16)),
+        // SW
+        0b010 => exec(instruction, regs, memory, u32::to_le_bytes),
+        _ => Err(Error::InvalidOpCode),
+    }
 }
 
 #[inline(always)]
