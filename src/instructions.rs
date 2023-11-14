@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use crate::decode::{Shift, B, I, J, R, S, U, U12};
 use crate::error::Error;
 use crate::mem;
@@ -258,60 +256,36 @@ pub(crate) fn execute_branch(
     regs: &mut Registers<u32>,
     pc: &mut u32,
 ) -> Result<(), Error> {
-    match instruction.id() {
-        0 => {
-            // BEQ
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let src2 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }.fetch(regs);
-            if src1 == src2 {
-                let offset = instruction.imm.sign_extend() as i32;
-                *pc = pc.saturating_add_signed(offset);
-            }
+    #[inline(always)]
+    fn exec<F>(instruction: B, regs: &mut Registers<u32>, pc: &mut u32, f: F) -> Result<(), Error>
+    where
+        F: Fn(u32, u32) -> bool,
+    {
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+        if f(src1, src2) {
+            *pc = pc.wrapping_add_signed(instruction.imm.sign_extend() as i32);
         }
-        1 => {
-            // BNE
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let src2 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }.fetch(regs);
-            match src1.cmp(&src2) {
-                Ordering::Less | Ordering::Greater => {
-                    let offset = instruction.imm.sign_extend() as i32;
-                    *pc = pc.saturating_add_signed(offset);
-                }
-                _ => {}
-            }
-        }
-        4 | 6 => {
-            // BLT/U
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let src2 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }.fetch(regs);
-            if src1 < src2 {
-                let offset = instruction.imm.sign_extend() as i32;
-                *pc = pc.saturating_add_signed(offset);
-            }
-        }
-        5 | 7 => {
-            // BGE/U
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let src2 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs2.as_u8()) }.fetch(regs);
-            match src1.cmp(&src2) {
-                Ordering::Equal | Ordering::Greater => {
-                    let offset = instruction.imm.sign_extend() as i32;
-                    *pc = pc.saturating_add_signed(offset);
-                }
-                _ => {}
-            }
-        }
-        _ => return Err(Error::InvalidOpCode),
+        Ok(())
     }
-    Ok(())
+
+    let f: fn(u32, u32) -> bool = match instruction.id() {
+        // BEQ
+        0 => |a, b| a == b,
+        // BNE
+        1 => |a, b| a != b,
+        // BLT
+        4 => |a, b| a < b,
+        // BGE
+        5 => |a, b| a >= b,
+        // BLTU
+        6 => |a, b| unsafe { core::mem::transmute::<_, i32>(a) < core::mem::transmute(b) },
+        // BLTU
+        7 => |a, b| unsafe { core::mem::transmute::<_, i32>(a) >= core::mem::transmute(b) },
+        _ => return Err(Error::InvalidOpCode),
+    };
+
+    exec(instruction, regs, pc, f)
 }
 
 #[inline(always)]
