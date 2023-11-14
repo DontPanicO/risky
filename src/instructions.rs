@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::decode::{Shift, B, I, J, R, S, U};
+use crate::decode::{Shift, B, I, J, R, S, U, U12};
 use crate::error::Error;
 use crate::mem;
 use crate::registers::{Registers, ZeroOrRegister};
@@ -69,72 +69,45 @@ pub(crate) fn execute_math(instruction: R, regs: &mut Registers<u32>) -> Result<
 
 #[inline(always)]
 pub(crate) fn execute_mathi(instruction: I, regs: &mut Registers<u32>) -> Result<(), Error> {
-    match instruction.id() {
-        0 => {
-            // ADDI
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            *dest = src1.wrapping_add(instruction.imm.as_u32());
-        }
-        2 => {
-            // SLTI
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            let immediate_signed = instruction.imm.sign_extend() as i32;
-            let src1_signed: i32 = unsafe { core::mem::transmute(src1) };
-            match src1_signed.cmp(&immediate_signed) {
-                Ordering::Less => *dest = 1,
-                _ => *dest = 0,
+    #[inline(always)]
+    fn exec<F>(instruction: I, regs: &mut Registers<u32>, f: F) -> Result<(), Error>
+    where
+        F: Fn(u32, U12) -> u32,
+    {
+        match instruction.rd.into() {
+            ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
+            ZeroOrRegister::Register(reg) => {
+                let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+                *regs.get_mut(reg) = f(src1, instruction.imm);
+                Ok(())
             }
         }
-        3 => {
-            // SLTIU
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            match src1.cmp(&instruction.imm.as_u32()) {
-                Ordering::Less => *dest = 1,
-                _ => *dest = 0,
-            }
-        }
-        4 => {
-            // XORI
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            *dest = src1 ^ instruction.imm.as_u32();
-        }
-        6 => {
-            // ORI
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            *dest = src1 | instruction.imm.as_u32();
-        }
-        7 => {
-            // ANDI
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            *dest = src1 & instruction.imm.as_u32();
-        }
-        _ => return Err(Error::InvalidOpCode),
     }
-    Ok(())
+
+    let f: fn(u32, U12) -> u32 = match instruction.id() {
+        // ADDI
+        0 => |a, b| a.wrapping_add(b.as_u32()),
+        // SLTI
+        2 => |a, b| {
+            let a: i32 = unsafe { core::mem::transmute(a) };
+            let b = b.sign_extend() as i32;
+            (a < b) as u32
+        },
+        // SLTIU
+        // NOTE: SLTIU rd, rs1, 1 sets rd to 1 if rs1 equals zero, otherwise sets rd to 0
+        //       (assembler pseudoinstruction SEQZ rd, rs).
+        //       Ignored because rs1 < 1 can only be 0.
+        3 => |a, b| (a < b.as_u32()) as u32,
+        // XORI
+        4 => |a, b| a ^ b.as_u32(),
+        // ORI
+        5 => |a, b| a | b.as_u32(),
+        // ANDI
+        7 => |a, b| a & b.as_u32(),
+        _ => return Err(Error::InvalidOpCode),
+    };
+
+    exec(instruction, regs, f)
 }
 
 // TODO: FIX memrxx calls (now reading from empty slice)
