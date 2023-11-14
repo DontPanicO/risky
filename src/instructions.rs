@@ -194,40 +194,35 @@ pub(crate) fn execute_jalr(
 
 #[inline(always)]
 pub(crate) fn execute_shifti(instruction: Shift, regs: &mut Registers<u32>) -> Result<(), Error> {
-    match instruction.id() {
-        1 => {
-            // SLLI
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            *dest = src1.wrapping_shl(instruction.shamt.as_u32());
-        }
-        5 => {
-            // SRLI
-            let src1 =
-                unsafe { ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()) }.fetch(regs);
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            *dest = src1.wrapping_shr(instruction.shamt.as_u32());
-        }
-        68 => {
-            // SRAI
-            let src1: i32 = unsafe {
-                core::mem::transmute(
-                    ZeroOrRegister::decode_unchecked(instruction.rs1.as_u8()).fetch(regs),
-                )
-            };
-            let dest = unsafe { ZeroOrRegister::decode_unchecked(instruction.rd.as_u8()) }
-                .fetch_mut(regs)
-                .ok_or(Error::InvalidOpCode)?;
-            *dest = unsafe { core::mem::transmute(src1.wrapping_shr(instruction.shamt.as_u32())) };
-        }
-        _ => return Err(Error::InvalidOpCode),
+    #[inline(always)]
+    fn exec<F>(instruction: Shift, regs: &mut Registers<u32>, f: F) -> Result<(), Error>
+    where
+        F: Fn(u32, u32) -> u32,
+    {
+        let dest_reg = if let ZeroOrRegister::Register(reg) = instruction.rd.into() {
+            reg
+        } else {
+            return Err(Error::InvalidOpCode);
+        };
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        *regs.get_mut(dest_reg) = f(src1, instruction.shamt.as_u32());
+
+        Ok(())
     }
-    Ok(())
+
+    let f: fn(u32, u32) -> u32 = match instruction.id() {
+        // SLLI
+        1 => |a, b| a.wrapping_shl(b),
+        // SRLI
+        5 => |a, b| a.wrapping_shr(b),
+        // SRAI
+        68 => |a, b| unsafe {
+            core::mem::transmute(core::mem::transmute::<_, i32>(a).wrapping_shr(b))
+        },
+        _ => return Err(Error::InvalidOpCode),
+    };
+
+    exec(instruction, regs, f)
 }
 
 #[inline(always)]
