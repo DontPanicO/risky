@@ -1,3 +1,5 @@
+use crate::decode::U5;
+
 pub trait Zero {
     fn zero() -> Self;
 }
@@ -161,6 +163,18 @@ impl ZeroOrRegister {
         } else {
             None
         }
+    }
+
+    #[inline(always)]
+    pub const fn from_u5(value: U5) -> Self {
+        unsafe { Self::decode_unchecked(value.as_u8()) }
+    }
+}
+
+impl From<U5> for ZeroOrRegister {
+    #[inline(always)]
+    fn from(value: U5) -> Self {
+        Self::from_u5(value)
     }
 }
 
