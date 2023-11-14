@@ -1,3 +1,4 @@
+pub(crate) mod decode;
 pub(crate) mod elf;
 pub(crate) mod error;
 pub(crate) mod instructions;
@@ -40,46 +41,46 @@ fn step(
     println!("{:#034b} - PC: {:#0x}", encoded, pc);
     match bit_extract(encoded, 0, 6) {
         0b0110111 => {
-            let instruction = instructions::U::from_u32(encoded);
+            let instruction = decode::U::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_lui(instruction, regs).unwrap();
             *pc += 4;
         }
         0b0010111 => {
-            let instruction = instructions::U::from_u32(encoded);
+            let instruction = decode::U::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_auipc(instruction, regs, *pc).unwrap();
             *pc += 4;
         }
         0b1101111 => {
-            let instruction = instructions::J::from_u32(encoded);
+            let instruction = decode::J::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_jal(instruction, regs, pc, link).unwrap();
         }
         0b1100111 => {
-            let instruction = instructions::I::from_u32(encoded);
+            let instruction = decode::I::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_jalr(instruction, regs, pc, *link).unwrap();
         }
         0b1100011 => {
-            let instruction = instructions::B::from_u32(encoded);
+            let instruction = decode::B::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_branch(instruction, regs, pc).unwrap();
         }
         0b0000011 => {
-            let instruction = instructions::I::from_u32(encoded);
+            let instruction = decode::I::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_load(instruction, regs, memory).unwrap();
             *pc += 4;
         }
         0b0100011 => {
-            let instruction = instructions::S::from_u32(encoded);
+            let instruction = decode::S::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_store(instruction, regs, memory).unwrap();
             *pc += 4;
         }
         0b0010011 => {
-            let instruction = instructions::I::from_u32(encoded);
+            let instruction = decode::I::from_u32(encoded);
             println!("{:?}", instruction);
             if instruction.funct3.as_u8() == 0b001 || instruction.funct3.as_u8() == 0b101 {
                 instructions::execute_shifti(instruction.into(), regs).unwrap()
@@ -89,7 +90,7 @@ fn step(
             *pc += 4;
         }
         0b0110011 => {
-            let instruction = instructions::R::from_u32(encoded);
+            let instruction = decode::R::from_u32(encoded);
             println!("{:?}", instruction);
             instructions::execute_math(instruction, regs).unwrap();
             *pc += 4;
