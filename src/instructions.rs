@@ -1,6 +1,5 @@
 use crate::decode::{Shift, B, I, J, R, S, U, U12};
 use crate::error::Error;
-use crate::mem;
 use crate::registers::{Registers, ZeroOrRegister};
 
 const OPCODE_SIZE: u32 = 4;
@@ -98,10 +97,18 @@ pub(crate) fn execute_load(
     regs: &mut Registers<u32>,
     memory: &[u8],
 ) -> Result<(), Error> {
+    use crate::mem::{self, Pod, I16, U16, U32};
+
     #[inline(always)]
-    fn exec<F>(instruction: I, regs: &mut Registers<u32>, memory: &[u8], f: F) -> Result<(), Error>
+    fn exec<T, F>(
+        instruction: I,
+        regs: &mut Registers<u32>,
+        memory: &[u8],
+        f: F,
+    ) -> Result<(), Error>
     where
-        F: Fn(&[u8], usize) -> Result<u32, Error>,
+        T: Pod,
+        F: Fn(T) -> u32,
     {
         let dest_reg =
             if let ZeroOrRegister::Register(reg) = ZeroOrRegister::from_u5(instruction.rd) {
@@ -113,31 +120,27 @@ pub(crate) fn execute_load(
             .fetch(regs)
             .wrapping_add_signed(instruction.imm.sign_extend() as i32)
             as usize;
-        *regs.get_mut(dest_reg) = f(memory, offset)?;
+        *regs.get_mut(dest_reg) = f(mem::read::<T>(memory, offset)?);
         Ok(())
     }
 
-    let f: fn(&[u8], usize) -> Result<u32, Error> = match instruction.id() {
+    match instruction.id() {
         // LB
-        0b000 => |memory, offset| {
-            mem::memr8(memory, offset)
-                .map(|n| unsafe { core::mem::transmute(core::mem::transmute::<_, i8>(n) as i32) })
-        },
+        0b000 => exec(instruction, regs, memory, |n: i8| unsafe {
+            core::mem::transmute(n as i32)
+        }),
         // LBU
-        0b100 => |memory, offset| mem::memr8(memory, offset).map(|n| n as u32),
+        0b100 => exec(instruction, regs, memory, |n: u8| n as u32),
         // LH
-        0b001 => |memory, offset| {
-            mem::memr16(memory, offset)
-                .map(|n| unsafe { core::mem::transmute(i16::from_le_bytes(n) as i32) })
-        },
+        0b001 => exec(instruction, regs, memory, |n: I16| unsafe {
+            core::mem::transmute(n.as_i16() as i32)
+        }),
         // LHU
-        0b101 => |memory, offset| mem::memr16(memory, offset).map(|n| u16::from_le_bytes(n) as u32),
+        0b101 => exec(instruction, regs, memory, |n: U16| n.as_u16() as u32),
         // LW
-        0b010 => |memory, offset| mem::memr32(memory, offset).map(u32::from_le_bytes),
-        _ => return Err(Error::InvalidOpCode),
-    };
-
-    exec(instruction, regs, memory, f)
+        0b011 => exec(instruction, regs, memory, |n: U32| n.as_u32()),
+        _ => Err(Error::InvalidOpCode),
+    }
 }
 
 #[inline(always)]
@@ -220,29 +223,32 @@ pub(crate) fn execute_store(
     regs: &mut Registers<u32>,
     memory: &mut [u8],
 ) -> Result<(), Error> {
+    use crate::mem::{self, Pod, U16, U32};
+
     #[inline(always)]
-    fn exec<const N: usize, F>(
+    fn exec<T, F>(
         instruction: S,
         regs: &mut Registers<u32>,
         memory: &mut [u8],
         f: F,
     ) -> Result<(), Error>
     where
-        F: Fn(u32) -> [u8; N],
+        T: Pod,
+        F: Fn(u32) -> T,
     {
         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
         let offset = src1.wrapping_add_signed(instruction.imm.sign_extend() as i32) as usize;
-        mem::memw(&f(src2), memory, offset)
+        mem::write(&f(src2), memory, offset)
     }
 
     match instruction.id() {
         // SB
-        0b000 => exec(instruction, regs, memory, |n| u8::to_le_bytes(n as u8)),
+        0b000 => exec(instruction, regs, memory, |n| n as u8),
         // SH
-        0b001 => exec(instruction, regs, memory, |n| u16::to_le_bytes(n as u16)),
+        0b001 => exec(instruction, regs, memory, |n| U16::new(n as u16)),
         // SW
-        0b010 => exec(instruction, regs, memory, u32::to_le_bytes),
+        0b010 => exec(instruction, regs, memory, U32::new),
         _ => Err(Error::InvalidOpCode),
     }
 }
