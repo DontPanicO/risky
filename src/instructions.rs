@@ -149,7 +149,7 @@ pub(crate) fn execute_jal(
     //       address is not aligned to a four-byte boundary. (???)
 
     if let ZeroOrRegister::Register(reg) = instruction.rd.into() {
-        *regs.get_mut(reg) = *pc + 4;
+        *regs.get_mut(reg) = pc.wrapping_add(4);
     }
 
     *pc = (*pc).wrapping_add_signed(instruction.imm.sign_extend());
@@ -172,7 +172,7 @@ pub(crate) fn execute_jalr(
         & !1;
 
     if let ZeroOrRegister::Register(reg) = ZeroOrRegister::from_u5(instruction.rd) {
-        *regs.get_mut(reg) = *pc + 4;
+        *regs.get_mut(reg) = pc.wrapping_add(4);
     }
 
     *pc = next;
