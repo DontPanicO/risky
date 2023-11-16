@@ -29,22 +29,7 @@ pub(crate) fn execute_math(instruction: R, regs: &mut Registers<u32>) -> Result<
         // SLT
         2 => |a, b| unsafe { (core::mem::transmute::<_, i32>(a) < core::mem::transmute(b)) as u32 },
         // SLTU
-        // NOTE: SLTU rd, x0, rs2 sets rd to 1 if rs2 is not equal to zero, otherwise sets rd to zero
-        //       (assembler pseudoinstruction SNEZ rd, rs).
-        3 => {
-            return match instruction.rd.into() {
-                ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
-                ZeroOrRegister::Register(dest) => {
-                    let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
-                    *regs.get_mut(dest) = match instruction.rs1.into() {
-                        ZeroOrRegister::Zero => src2 != 0,
-                        ZeroOrRegister::Register(src1_reg) => src1_reg.fetch(regs) < src2,
-                    } as u32;
-
-                    Ok(())
-                }
-            };
-        }
+        3 => |a, b| (a < b) as u32,
         // XOR
         4 => std::ops::BitXor::bitxor,
         // SRL (rs2 truncated)
@@ -92,9 +77,6 @@ pub(crate) fn execute_mathi(instruction: I, regs: &mut Registers<u32>) -> Result
             (a < b) as u32
         },
         // SLTIU
-        // NOTE: SLTIU rd, rs1, 1 sets rd to 1 if rs1 equals zero, otherwise sets rd to 0
-        //       (assembler pseudoinstruction SEQZ rd, rs).
-        //       Ignored because rs1 < 1 can only be 0.
         3 => |a, b| (a < b.as_u32()) as u32,
         // XORI
         4 => |a, b| a ^ b.as_u32(),
