@@ -267,17 +267,17 @@ pub(crate) fn execute_branch(
 
     let f: fn(u32, u32) -> bool = match instruction.id() {
         // BEQ
-        0 => |a, b| a == b,
+        0b000 => |a, b| a == b,
         // BNE
-        1 => |a, b| a != b,
+        0b001 => |a, b| a != b,
         // BLT
-        4 => |a, b| a < b,
+        0b100 => |a, b| unsafe { core::mem::transmute::<_, i32>(a) < core::mem::transmute(b) },
         // BGE
-        5 => |a, b| a >= b,
+        0b101 => |a, b| unsafe { core::mem::transmute::<_, i32>(a) >= core::mem::transmute(b) },
         // BLTU
-        6 => |a, b| unsafe { core::mem::transmute::<_, i32>(a) < core::mem::transmute(b) },
-        // BLTU
-        7 => |a, b| unsafe { core::mem::transmute::<_, i32>(a) >= core::mem::transmute(b) },
+        0b110 => |a, b| a < b,
+        // BGEU
+        0b111 => |a, b| a >= b,
         _ => return Err(Error::InvalidOpCode),
     };
 
