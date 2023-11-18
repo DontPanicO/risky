@@ -218,7 +218,9 @@ impl S {
     pub const fn from_u32(value: u32) -> Self {
         Self {
             imm: unsafe {
-                U12::new_unchecked((((value >> 25) & B7_MASK) | ((value >> 7) & B5_MASK)) as u16)
+                U12::new_unchecked(
+                    ((((value >> 25) & B7_MASK) << 5) | ((value >> 7) & B5_MASK)) as u16,
+                )
             },
             rs2: U5::new_truncate((value >> 20) as u8),
             rs1: U5::new_truncate((value >> 15) as u8),
