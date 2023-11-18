@@ -3,6 +3,8 @@ use crate::error::Error;
 use crate::mem;
 use crate::registers::{Registers, ZeroOrRegister};
 
+const OPCODE_SIZE: u32 = 4;
+
 #[inline(always)]
 pub(crate) fn execute_math(instruction: R, regs: &mut Registers<u32>) -> Result<(), Error> {
     #[inline(always)]
@@ -149,7 +151,7 @@ pub(crate) fn execute_jal(
     //       address is not aligned to a four-byte boundary. (???)
 
     if let ZeroOrRegister::Register(reg) = instruction.rd.into() {
-        *regs.get_mut(reg) = pc.wrapping_add(4);
+        *regs.get_mut(reg) = pc.wrapping_add(OPCODE_SIZE);
     }
 
     *pc = (*pc).wrapping_add_signed(instruction.imm.sign_extend());
@@ -172,7 +174,7 @@ pub(crate) fn execute_jalr(
         & !1;
 
     if let ZeroOrRegister::Register(reg) = ZeroOrRegister::from_u5(instruction.rd) {
-        *regs.get_mut(reg) = pc.wrapping_add(4);
+        *regs.get_mut(reg) = pc.wrapping_add(OPCODE_SIZE);
     }
 
     *pc = next;
@@ -262,7 +264,7 @@ pub(crate) fn execute_branch(
         if f(src1, src2) {
             *pc = pc.wrapping_add_signed(instruction.imm.sign_extend() as i32);
         } else {
-            *pc += 4;
+            *pc = pc.wrapping_add(OPCODE_SIZE);
         }
         Ok(())
     }
