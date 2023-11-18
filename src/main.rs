@@ -9,7 +9,7 @@ fn main() {
     let mut memory = [0u8; 262140];
     let mut regs = registers::Registers::default();
     let file = std::fs::read(
-        "/home/andreatedeschi/Public/tests/riscv/litmus-tests-riscv/elf-tests/basic/build/function_call_1-O0",
+        "/home/andreatedeschi/Public/tests/riscv/litmus-tests-riscv/elf-tests/basic/build/loop2-O0",
     )
     .unwrap();
     let elfdata = elf::load_elf_le(&file).unwrap();

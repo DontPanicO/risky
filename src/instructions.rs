@@ -92,7 +92,6 @@ pub(crate) fn execute_mathi(instruction: I, regs: &mut Registers<u32>) -> Result
     exec(instruction, regs, f)
 }
 
-// TODO: FIX memrxx calls (now reading from empty slice)
 #[inline(always)]
 pub(crate) fn execute_load(
     instruction: I,
