@@ -261,6 +261,8 @@ pub(crate) fn execute_branch(
         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
         if f(src1, src2) {
             *pc = pc.wrapping_add_signed(instruction.imm.sign_extend() as i32);
+        } else {
+            *pc += 4;
         }
         Ok(())
     }
