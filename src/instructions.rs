@@ -132,7 +132,7 @@ pub(crate) fn execute_load(
         // LHU
         0b101 => |memory, offset| mem::memr16(memory, offset).map(|n| u16::from_le_bytes(n) as u32),
         // LW
-        0b011 => |memory, offset| mem::memr32(memory, offset).map(u32::from_le_bytes),
+        0b010 => |memory, offset| mem::memr32(memory, offset).map(u32::from_le_bytes),
         _ => return Err(Error::InvalidOpCode),
     };
 
