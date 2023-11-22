@@ -89,6 +89,7 @@ pub fn memw(src: &[u8], dest: &mut [u8], addr: usize) -> Result<(), Error> {
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn memr<const N: usize>(dest: &mut [u8], src: &[u8], addr: usize) -> Result<(), Error> {
     let src = src
         .get(addr..)
@@ -104,11 +105,13 @@ pub fn memr32(src: &[u8], addr: usize) -> Result<[u8; 4], Error> {
     read::<[u8; 4]>(src, addr)
 }
 
+#[allow(dead_code)]
 #[inline(always)]
 pub fn memr16(src: &[u8], addr: usize) -> Result<[u8; 2], Error> {
     read::<[u8; 2]>(src, addr)
 }
 
+#[allow(dead_code)]
 #[inline(always)]
 pub fn memr8(src: &[u8], addr: usize) -> Result<u8, Error> {
     read::<[u8; 1]>(src, addr).map(|n| unsafe { core::mem::transmute(n) })
