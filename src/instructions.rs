@@ -138,7 +138,7 @@ pub(crate) fn execute_load(
         // LHU
         0b101 => exec(instruction, regs, memory, |n: U16| n.as_u16() as u32),
         // LW
-        0b011 => exec(instruction, regs, memory, |n: U32| n.as_u32()),
+        0b010 => exec(instruction, regs, memory, |n: U32| n.as_u32()),
         _ => Err(Error::InvalidOpCode),
     }
 }
