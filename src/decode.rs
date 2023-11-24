@@ -91,8 +91,8 @@ impl R {
     }
 
     #[inline(always)]
-    pub const fn id(&self) -> u32 {
-        self.funct3.as_u32() + self.funct7.as_u32()
+    pub const fn id(&self) -> U10 {
+        unsafe { U10::new_unchecked((self.funct7.as_u16() << 3) | self.funct3.as_u16()) }
     }
 }
 
@@ -136,8 +136,8 @@ impl I {
     }
 
     #[inline(always)]
-    pub const fn id(&self) -> u32 {
-        self.funct3.as_u32()
+    pub const fn id(&self) -> U3 {
+        self.funct3
     }
 }
 
@@ -173,8 +173,8 @@ impl Shift {
     }
 
     #[inline(always)]
-    pub const fn id(&self) -> u32 {
-        self.funct3.as_u32() + self.prefix.as_u32()
+    pub const fn id(&self) -> U10 {
+        unsafe { U10::new_unchecked((self.prefix.as_u16() << 3) | self.funct3.as_u16()) }
     }
 }
 
@@ -229,8 +229,8 @@ impl S {
     }
 
     #[inline(always)]
-    pub const fn id(&self) -> u32 {
-        self.funct3.as_u32()
+    pub const fn id(&self) -> U3 {
+        self.funct3
     }
 }
 
@@ -266,8 +266,8 @@ impl B {
     }
 
     #[inline(always)]
-    pub const fn id(&self) -> u32 {
-        self.funct3.as_u32()
+    pub const fn id(&self) -> U3 {
+        self.funct3
     }
 }
 
@@ -582,18 +582,26 @@ impl_u8!( U7, 7,
           U3  > as_u8  => from_u3,
           U4  > as_u8  => from_u4,
           U5  > as_u8  => from_u5);
-impl_u16!(U12, 12,
+impl_u16!(U10, 10,
           U2  > as_u8  => from_u2,
           U3  > as_u8  => from_u3,
           U4  > as_u8  => from_u4,
           U5  > as_u8  => from_u5,
           U7  > as_u8  => from_u7);
+impl_u16!(U12, 12,
+          U2  > as_u8  => from_u2,
+          U3  > as_u8  => from_u3,
+          U4  > as_u8  => from_u4,
+          U5  > as_u8  => from_u5,
+          U7  > as_u8  => from_u7,
+          U10 > as_u16 => from_u10);
 impl_u16!(U13, 13,
           U2  > as_u8  => from_u2,
           U3  > as_u8  => from_u3,
           U4  > as_u8  => from_u4,
           U5  > as_u8  => from_u5,
           U7  > as_u8  => from_u7,
+          U10 > as_u16 => from_u10,
           U12 > as_u16 => from_u12);
 impl_u32!(U21, 21,
           U2  > as_u8  => from_u2,
@@ -601,6 +609,7 @@ impl_u32!(U21, 21,
           U4  > as_u8  => from_u4,
           U5  > as_u8  => from_u5,
           U7  > as_u8  => from_u7,
+          U10 > as_u16 => from_u10,
           U12 > as_u16 => from_u12,
           U13 > as_u16 => from_u13);
 
