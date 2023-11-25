@@ -76,6 +76,13 @@ impl<T: Copy + Default> Registers<T> {
     pub fn new() -> Self {
         Self([Default::default(); 31])
     }
+
+    #[inline(always)]
+    pub fn with_sp(sp: T) -> Self {
+        let mut regs = Self::new();
+        regs.0[1] = sp;
+        regs
+    }
 }
 
 impl<T: Copy> Registers<T> {
