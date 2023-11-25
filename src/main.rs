@@ -1,13 +1,14 @@
 pub(crate) mod decode;
 pub(crate) mod elf;
 pub(crate) mod error;
+pub(crate) mod instruction_ids;
 pub(crate) mod instructions;
 pub(crate) mod mem;
 pub(crate) mod registers;
 
 fn main() {
     let mut memory = [0u8; 262140];
-    let mut regs = registers::Registers::default();
+    let mut regs = registers::Registers::with_sp(256);
     let file = std::fs::read(
         "/home/andreatedeschi/Public/tests/riscv/litmus-tests-riscv/elf-tests/basic/build/loop2-O0",
     )

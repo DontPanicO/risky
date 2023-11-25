@@ -1,57 +1,9 @@
-use crate::decode::{Shift, B, I, J, R, S, U, U10, U12, U3};
+use crate::decode::{Shift, B, I, J, R, S, U, U12};
 use crate::error::Error;
+use crate::instruction_ids::*;
 use crate::registers::{Registers, ZeroOrRegister};
 
 const OPCODE_SIZE: u32 = 4;
-
-macro_rules! def_uconst {
-    ($($v:vis const $name:ident: $t:ty = $n:expr;)*) => {
-        $(
-            #[allow(clippy::unusual_byte_groupings)]
-            $v const $name: $t = if let Some(n) = <$t>::new($n) {
-                n
-            } else {
-                panic!(concat!("Value ", stringify!($n), " out of ", stringify!($t), " range"))
-            };
-        )*
-    };
-}
-
-def_uconst! {
-    const ADD: U10 = 0b0000000_000;
-    const SUB: U10 = 0b0100000_000;
-    const SLL: U10 = 0b0000000_001;
-    const SLT: U10 = 0b0000000_010;
-    const SLTU: U10 = 0b0000000_011;
-    const XOR: U10 = 0b0000000_100;
-    const SRL: U10 = 0b0000000_101;
-    const SRA: U10 = 0b0100000_101;
-    const OR: U10 = 0b0000000_110;
-    const AND: U10 = 0b0000000_111;
-    const ADDI: U3 = 0b000;
-    const SLTI: U3 = 0b010;
-    const SLTIU: U3 = 0b011;
-    const XORI: U3 = 0b100;
-    const ORI: U3 = 0b110;
-    const ANDI: U3 = 0b111;
-    const LB: U3 = 0b000;
-    const LBU: U3 = 0b100;
-    const LH: U3 = 0b001;
-    const LHU: U3 = 0b101;
-    const LW: U3 = 0b010;
-    const SLLI: U10 = 0b0000000_001;
-    const SRLI: U10 = 0b0000000_101;
-    const SRAI: U10 = 0b0100000_101;
-    const SB: U3 = 0b000;
-    const SH: U3 = 0b001;
-    const SW: U3 = 0b010;
-    const BEQ: U3 = 0b000;
-    const BNE: U3 = 0b001;
-    const BLT: U3 = 0b100;
-    const BGE: U3 = 0b101;
-    const BLTU: U3 = 0b110;
-    const BGEU: U3 = 0b111;
-}
 
 #[inline(always)]
 pub(crate) fn execute_math(instruction: R, regs: &mut Registers<u32>) -> Result<(), Error> {
@@ -110,7 +62,7 @@ pub(crate) fn execute_mathi(instruction: I, regs: &mut Registers<u32>) -> Result
     }
 
     let f: fn(u32, U12) -> u32 = match instruction.id() {
-        ADDI => |a, b| a.wrapping_add(b.as_u32()),
+        ADDI => |a, b| a.wrapping_add_signed(b.sign_extend() as i32),
         SLTI => |a, b| {
             let a: i32 = unsafe { core::mem::transmute(a) };
             let b = b.sign_extend() as i32;
