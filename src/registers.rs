@@ -188,6 +188,24 @@ impl From<U5> for ZeroOrRegister {
     }
 }
 
+pub trait ProgramCounter {
+    fn increment(&mut self);
+}
+
+impl ProgramCounter for u32 {
+    #[inline(always)]
+    fn increment(&mut self) {
+        *self += 4;
+    }
+}
+
+impl ProgramCounter for u64 {
+    #[inline(always)]
+    fn increment(&mut self) {
+        *self += 4;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
