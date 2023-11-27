@@ -4,17 +4,19 @@ pub(crate) mod error;
 pub(crate) mod instruction_ids;
 pub(crate) mod instructions;
 pub(crate) mod mem;
+pub(crate) mod num;
+pub(crate) mod ops;
 pub(crate) mod registers;
 
 fn main() {
     let mut memory = [0u8; 262140];
     let mut regs = registers::Registers::with_sp(256);
     let file = std::fs::read(
-        "/home/andreatedeschi/Public/tests/riscv/litmus-tests-riscv/elf-tests/basic/build/loop2-O0",
+        "/home/andreatedeschi/Public/tests/riscv/litmus-tests-riscv/elf-tests/basic/build/function_call_1-O0",
     )
     .unwrap();
     let elfdata = elf::load_elf_le(&file).unwrap();
-    let mut program_counter: u32 = elfdata.ehdr.e_entry as u32;
+    let mut program_counter = elfdata.ehdr.e_entry;
     for sg in elfdata.segments().unwrap().iter() {
         let sg_data = elfdata.segment_data(&sg).unwrap();
         println!("{}, {}", sg.p_paddr, sg.p_memsz);
@@ -31,63 +33,82 @@ fn main() {
 }
 
 #[inline(always)]
-fn step(encoded: u32, regs: &mut registers::Registers<u32>, pc: &mut u32, memory: &mut [u8]) {
+fn step<T>(encoded: u32, regs: &mut registers::Registers<T>, pc: &mut T, memory: &mut [u8])
+where
+    T: Copy + instructions::BaseInstruction + registers::ProgramCounter + std::fmt::LowerHex,
+{
     println!("{:#034b} - PC: {:#0x}", encoded, pc);
     match bit_extract(encoded, 0, 6) {
         0b0110111 => {
             let instruction = decode::U::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_lui(instruction, regs).unwrap();
-            *pc += 4;
+            T::lui(instruction, regs).unwrap();
+            pc.increment();
         }
         0b0010111 => {
             let instruction = decode::U::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_auipc(instruction, regs, *pc).unwrap();
-            *pc += 4;
+            T::auipc(instruction, regs, *pc).unwrap();
+            pc.increment();
         }
         0b1101111 => {
             let instruction = decode::J::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_jal(instruction, regs, pc).unwrap();
+            T::jal(instruction, regs, pc).unwrap();
         }
         0b1100111 => {
             let instruction = decode::I::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_jalr(instruction, regs, pc).unwrap();
+            T::jalr(instruction, regs, pc).unwrap();
         }
         0b1100011 => {
             let instruction = decode::B::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_branch(instruction, regs, pc).unwrap();
+            T::branch(instruction, regs, pc).unwrap();
         }
         0b0000011 => {
             let instruction = decode::I::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_load(instruction, regs, memory).unwrap();
-            *pc += 4;
+            T::load(instruction, regs, memory).unwrap();
+            pc.increment();
         }
         0b0100011 => {
             let instruction = decode::S::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_store(instruction, regs, memory).unwrap();
-            *pc += 4;
+            T::store(instruction, regs, memory).unwrap();
+            pc.increment();
         }
         0b0010011 => {
             let instruction = decode::I::from_u32(encoded);
             println!("{:?}", instruction);
             if instruction.funct3.as_u8() == 0b001 || instruction.funct3.as_u8() == 0b101 {
-                instructions::execute_shifti(instruction.into(), regs).unwrap()
+                T::shifti(instruction.into(), regs).unwrap()
             } else {
-                instructions::execute_mathi(instruction, regs).unwrap()
+                T::mathi(instruction, regs).unwrap()
             }
-            *pc += 4;
+            pc.increment();
         }
         0b0110011 => {
             let instruction = decode::R::from_u32(encoded);
             println!("{:?}", instruction);
-            instructions::execute_math(instruction, regs).unwrap();
-            *pc += 4;
+            T::math(instruction, regs).unwrap();
+            pc.increment();
+        }
+        0b0111011 => {
+            let instruction = decode::R::from_u32(encoded);
+            println!("{:?}", instruction);
+            T::mathw(instruction, regs).unwrap();
+            pc.increment();
+        }
+        0b0011011 => {
+            let instruction = decode::I::from_u32(encoded);
+            println!("{:?}", instruction);
+            if instruction.funct3.as_u8() == 0b00 {
+                T::mathiw(instruction, regs).unwrap()
+            } else {
+                T::shiftiw(instruction.into(), regs).unwrap();
+            }
+            pc.increment();
         }
         0b0001111 => todo!("FENCE detected"),
         0b1110011 => todo!("SYSTEM call"),
