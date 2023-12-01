@@ -9,12 +9,15 @@ pub(crate) mod ops;
 pub(crate) mod registers;
 
 fn main() {
+    let args: Vec<_> = std::env::args().collect();
+    if args.len() < 2 {
+        println!("Missing executable path.");
+        std::process::exit(1);
+    }
+    let path = &args[1];
     let mut memory = [0u8; 262140];
     let mut regs = registers::Registers::with_sp(256);
-    let file = std::fs::read(
-        "/home/andreatedeschi/Public/tests/riscv/litmus-tests-riscv/elf-tests/basic/build/function_call_1-O0",
-    )
-    .unwrap();
+    let file = std::fs::read(path).unwrap();
     let elfdata = elf::load_elf_le(&file).unwrap();
     let mut program_counter = elfdata.ehdr.e_entry;
     for sg in elfdata.segments().unwrap().iter() {
@@ -103,7 +106,7 @@ where
         0b0011011 => {
             let instruction = decode::I::from_u32(encoded);
             println!("{:?}", instruction);
-            if instruction.funct3.as_u8() == 0b00 {
+            if instruction.funct3.as_u8() == 0b000 {
                 T::mathiw(instruction, regs).unwrap()
             } else {
                 T::shiftiw(instruction.into(), regs).unwrap();
