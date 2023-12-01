@@ -159,7 +159,7 @@ impl Shift {
         }: I,
     ) -> Self {
         Self {
-            prefix: unsafe { U7::new_unchecked((imm.as_u16() >> 7) as u8) },
+            prefix: unsafe { U7::new_unchecked((imm.as_u16() >> 5) as u8) },
             shamt: U5::new_truncate(imm.as_u16() as u8),
             rs1,
             funct3,
