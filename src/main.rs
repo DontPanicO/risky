@@ -123,3 +123,660 @@ where
 pub const fn bit_extract(src: u32, lo: u32, hi: u32) -> u32 {
     (src >> lo) & (2u32.pow(hi - lo + 1) - 1)
 }
+
+#[cfg(test)]
+#[allow(clippy::unusual_byte_groupings)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_lui() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        let mut program_counter = 0u32;
+        let instruction = 0b00000000000000000001_01100_0110111;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 0b1000000000000);
+    }
+
+    #[test]
+    fn test_auipc() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        let mut program_counter = 4u32;
+        let instruction = 0b00000000000000000001_01100_0010111;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 0b1000000000000 + 4);
+    }
+
+    #[test]
+    fn test_jal() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        let mut program_counter = 4u32;
+        let instruction = 0b0_0000000000_0_00000000_01100_1101111;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 8);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_jalr() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 12;
+        let mut program_counter = 4u32;
+        let instruction = 0b000000000000_01101_000_01100_1100111;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 8);
+        assert_eq!(program_counter, 12 & !0b1);
+    }
+
+    #[test]
+    fn test_load_byte() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        memory[32] = 255;
+        let mut program_counter = 4u32;
+        let instruction = 0b000000000000_01101_000_01100_0000011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12 as u8, 255);
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_load_half() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        memory[32..34].copy_from_slice(&[255, 255]);
+        let mut program_counter = 4u32;
+        let instruction = 0b000000000000_01101_001_01100_0000011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12 as u16, u16::MAX);
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_load_word() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        memory[32..36].copy_from_slice(&[255, 255, 0, 0]);
+        let mut program_counter = 4u32;
+        let instruction = 0b000000000000_01101_010_01100_0000011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, u32::from_le_bytes([255, 255, 0, 0]));
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_load_dword() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        memory[32..40].copy_from_slice(&[255, 255, 0, 0, 0, 0, 0, 0]);
+        let mut program_counter = 4u64;
+        let instruction = 0b000000000000_01101_011_01100_0000011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, u64::from_le_bytes([255, 255, 0, 0, 0, 0, 0, 0]));
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_store_byte() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = 255;
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 4u32;
+        let instruction = 0b0000000_01100_01101_000_00000_0100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let data = mem::read::<u8>(&memory, 32).unwrap();
+        assert_eq!(data, 255);
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_store_half() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = u32::from_le_bytes([255, 255, 0, 0]);
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 4u32;
+        let instruction = 0b0000000_01100_01101_001_00000_0100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let data = mem::read::<mem::U16>(&memory, 32).unwrap().as_u16();
+        assert_eq!(data, u16::MAX);
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_store_word() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = u32::from_le_bytes([255, 255, 0, 0]);
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 4u32;
+        let instruction = 0b0000000_01100_01101_010_00000_0100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let data = mem::read::<mem::U32>(&memory, 32).unwrap().as_u32();
+        assert_eq!(data, u16::MAX as u32);
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_store_dword() {
+        let mut memory = [0u8; 64];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = u16::MAX as u64;
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 4u64;
+        let instruction = 0b0000000_01100_01101_011_00000_0100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let data = mem::read::<mem::U64>(&memory, 32).unwrap().as_u64();
+        assert_eq!(data, u16::MAX as u64);
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_math_add() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 100;
+        *regs.get_mut(registers::Register::X14) = 10;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_000_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 110);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_sub() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 100;
+        *regs.get_mut(registers::Register::X14) = 10;
+        let mut program_counter = 0u32;
+        let instruction = 0b0100000_01110_01101_000_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 90);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_sll() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 1;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_001_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 4);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_srl() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_101_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 >> 4);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_sra() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i32 as u32;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0100000_01110_01101_101_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, ((-1i32).wrapping_shr(4)) as u32);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_slt() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i32 as u32;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_010_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_sltu() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 2;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_011_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_xor() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_100_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 ^ 4);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_or() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_110_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 | 4);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_math_and() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01110_01101_111_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 & 4);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathi_addi() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 100;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_000_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 101);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathi_slti() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i32 as u32;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_010_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathi_sltiu() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i32 as u32;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_011_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 0);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathi_xori() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_100_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 ^ 1);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathi_ori() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_110_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 | 1);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathi_andi() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_111_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 & 1);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shifti_slli() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 1;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_00011_01101_001_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 3);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shifti_srli() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_00011_01101_101_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 >> 3);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shifti_srai() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i32 as u32;
+        let mut program_counter = 0u32;
+        let instruction = 0b0100000_00011_01101_101_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        println!("{:?}", regs);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, ((-1i32).wrapping_shr(3)) as u32);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shifti_slli_64() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 1;
+        let mut program_counter = 0u64;
+        let instruction = 0b0000000_00011_01101_001_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 3);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shifti_srli_64() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 0u64;
+        let instruction = 0b0000000_00011_01101_101_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 >> 3);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shifti_srai_64() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i32 as u64;
+        let mut program_counter = 0u64;
+        let instruction = 0b0100000_00011_01101_101_01100_0010011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        println!("{:?}", regs);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, ((-1i64).wrapping_shr(3)) as u64);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_branch_beq() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = 32;
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01101_01100_000_00100_1100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_branch_bne() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = 32;
+        *regs.get_mut(registers::Register::X13) = 64;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01101_01100_001_00100_1100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_branch_blt() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = 32;
+        *regs.get_mut(registers::Register::X13) = 64;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01101_01100_100_00100_1100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_branch_bltu() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = 32;
+        *regs.get_mut(registers::Register::X13) = 64;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01101_01100_110_00100_1100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_branch_bge() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = 64;
+        *regs.get_mut(registers::Register::X13) = 64;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01101_01100_101_00100_1100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_branch_bgeu() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X12) = 65;
+        *regs.get_mut(registers::Register::X13) = 64;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000000_01101_01100_111_00100_1100011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathw_addw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 100;
+        *regs.get_mut(registers::Register::X14) = 10;
+        let mut program_counter = 0u64;
+        let instruction = 0b0000000_01110_01101_000_01100_0111011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 110);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathw_subw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 100;
+        *regs.get_mut(registers::Register::X14) = 10;
+        let mut program_counter = 0u64;
+        let instruction = 0b0100000_01110_01101_000_01100_0111011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 90);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathw_sllw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 1;
+        *regs.get_mut(registers::Register::X14) = 4;
+        let mut program_counter = 0u64;
+        let instruction = 0b0000000_01110_01101_001_01100_0111011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 4);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathw_srlw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        *regs.get_mut(registers::Register::X14) = 3;
+        let mut program_counter = 0u64;
+        let instruction = 0b0000000_01110_01101_101_01100_0111011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 >> 3);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathw_sraw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i64 as u64;
+        *regs.get_mut(registers::Register::X14) = 3;
+        let mut program_counter = 0u64;
+        let instruction = 0b0100000_01110_01101_101_01100_0111011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12 as u32, ((-1i64).wrapping_shr(3) as u64 as u32));
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_mathiw_addiw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 100;
+        let mut program_counter = 0u64;
+        let instruction = 0b000000000011_01101_000_01100_0011011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 103);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shiftiw_slliw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 1;
+        let mut program_counter = 0u64;
+        let instruction = 0b0000000_00011_01101_001_01100_0011011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 3);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shiftiw_srliw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 0u64;
+        let instruction = 0b0000000_00011_01101_101_01100_0011011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 32 >> 3);
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_shiftiw_sraiw() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -1i64 as u64;
+        let mut program_counter = 0u64;
+        let instruction = 0b0100000_00011_01101_101_01100_0011011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12 as u32, (-1i64).wrapping_shr(3) as u64 as u32);
+        assert_eq!(program_counter, 4);
+    }
+}
