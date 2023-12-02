@@ -60,7 +60,7 @@ pub trait Auipc: Sized {
 }
 
 pub trait BaseInstruction:
-    Math + MathW + MathI + MathIW + ShiftI + ShiftIW + Load + Store + Branch + Jal + Jalr + Lui + Auipc
+    Math + MathI + ShiftI + Load + Store + Branch + Jal + Jalr + Lui + Auipc
 {
 }
 
@@ -247,14 +247,6 @@ impl_jal!(u64);
 impl_jalr!(u32);
 impl_jalr!(u64);
 
-#[allow(unused_variables)]
-impl MathW for u32 {
-    #[inline(always)]
-    fn mathw(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
-        Err(Error::InvalidOpCode)
-    }
-}
-
 impl MathW for u64 {
     #[inline(always)]
     fn mathw(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
@@ -278,14 +270,6 @@ impl MathW for u64 {
     }
 }
 
-#[allow(unused_variables)]
-impl MathIW for u32 {
-    #[inline(always)]
-    fn mathiw(instruction: I, regs: &mut Registers<Self>) -> Result<(), Error> {
-        Err(Error::InvalidOpCode)
-    }
-}
-
 impl MathIW for u64 {
     #[inline(always)]
     fn mathiw(instruction: I, regs: &mut Registers<Self>) -> Result<(), Error> {
@@ -301,14 +285,6 @@ impl MathIW for u64 {
                 Ok(())
             }
         }
-    }
-}
-
-#[allow(unused_variables)]
-impl ShiftIW for u32 {
-    #[inline(always)]
-    fn shiftiw(instruction: Shift, regs: &mut Registers<Self>) -> Result<(), Error> {
-        Err(Error::InvalidOpCode)
     }
 }
 

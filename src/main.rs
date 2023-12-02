@@ -8,6 +8,8 @@ pub(crate) mod num;
 pub(crate) mod ops;
 pub(crate) mod registers;
 
+use crate::registers::ProgramCounter;
+
 fn main() {
     let args: Vec<_> = std::env::args().collect();
     if args.len() < 2 {
@@ -35,88 +37,162 @@ fn main() {
     }
 }
 
+trait Step: Sized {
+    fn step(encoded: u32, regs: &mut registers::Registers<Self>, pc: &mut Self, memory: &mut [u8]);
+}
+
+impl Step for u32 {
+    fn step(encoded: u32, regs: &mut registers::Registers<Self>, pc: &mut Self, memory: &mut [u8]) {
+        match bit_extract(encoded, 0, 6) {
+            0b0110111 => {
+                let instruction = decode::U::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Lui::lui(instruction, regs).unwrap();
+                pc.increment();
+            }
+            0b0010111 => {
+                let instruction = decode::U::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Auipc::auipc(instruction, regs, *pc).unwrap();
+                pc.increment();
+            }
+            0b1101111 => {
+                let instruction = decode::J::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Jal::jal(instruction, regs, pc).unwrap();
+            }
+            0b1100111 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Jalr::jalr(instruction, regs, pc).unwrap();
+            }
+            0b1100011 => {
+                let instruction = decode::B::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Branch::branch(instruction, regs, pc).unwrap();
+            }
+            0b0000011 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Load::load(instruction, regs, memory).unwrap();
+                pc.increment();
+            }
+            0b0100011 => {
+                let instruction = decode::S::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Store::store(instruction, regs, memory).unwrap();
+                pc.increment();
+            }
+            0b0010011 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                if instruction.funct3.as_u8() == 0b001 || instruction.funct3.as_u8() == 0b101 {
+                    instructions::ShiftI::shifti(instruction.into(), regs).unwrap()
+                } else {
+                    instructions::MathI::mathi(instruction, regs).unwrap()
+                }
+                pc.increment();
+            }
+            0b0110011 => {
+                let instruction = decode::R::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Math::math(instruction, regs).unwrap();
+                pc.increment();
+            }
+            0b0001111 => todo!("FENCE detected"),
+            0b1110011 => todo!("SYSTEM call"),
+            _ => panic!("Invalid OPCode"),
+        }
+    }
+}
+
+impl Step for u64 {
+    fn step(encoded: u32, regs: &mut registers::Registers<Self>, pc: &mut Self, memory: &mut [u8]) {
+        match bit_extract(encoded, 0, 6) {
+            0b0110111 => {
+                let instruction = decode::U::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Lui::lui(instruction, regs).unwrap();
+                pc.increment();
+            }
+            0b0010111 => {
+                let instruction = decode::U::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Auipc::auipc(instruction, regs, *pc).unwrap();
+                pc.increment();
+            }
+            0b1101111 => {
+                let instruction = decode::J::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Jal::jal(instruction, regs, pc).unwrap();
+            }
+            0b1100111 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Jalr::jalr(instruction, regs, pc).unwrap();
+            }
+            0b1100011 => {
+                let instruction = decode::B::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Branch::branch(instruction, regs, pc).unwrap();
+            }
+            0b0000011 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Load::load(instruction, regs, memory).unwrap();
+                pc.increment();
+            }
+            0b0100011 => {
+                let instruction = decode::S::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Store::store(instruction, regs, memory).unwrap();
+                pc.increment();
+            }
+            0b0010011 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                if instruction.funct3.as_u8() == 0b001 || instruction.funct3.as_u8() == 0b101 {
+                    instructions::ShiftI::shifti(instruction.into(), regs).unwrap()
+                } else {
+                    instructions::MathI::mathi(instruction, regs).unwrap()
+                }
+                pc.increment();
+            }
+            0b0110011 => {
+                let instruction = decode::R::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Math::math(instruction, regs).unwrap();
+                pc.increment();
+            }
+            0b0111011 => {
+                let instruction = decode::R::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::MathW::mathw(instruction, regs).unwrap();
+                pc.increment();
+            }
+            0b0011011 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                if instruction.funct3.as_u8() == 0b000 {
+                    instructions::MathIW::mathiw(instruction, regs).unwrap()
+                } else {
+                    instructions::ShiftIW::shiftiw(instruction.into(), regs).unwrap();
+                }
+                pc.increment();
+            }
+            0b0001111 => todo!("FENCE detected"),
+            0b1110011 => todo!("SYSTEM call"),
+            _ => panic!("Invalid OPCode"),
+        }
+    }
+}
+
 #[inline(always)]
 fn step<T>(encoded: u32, regs: &mut registers::Registers<T>, pc: &mut T, memory: &mut [u8])
 where
-    T: Copy + instructions::BaseInstruction + registers::ProgramCounter + std::fmt::LowerHex,
+    T: Copy + Step + instructions::BaseInstruction + registers::ProgramCounter + std::fmt::LowerHex,
 {
-    println!("{:#034b} - PC: {:#0x}", encoded, pc);
-    match bit_extract(encoded, 0, 6) {
-        0b0110111 => {
-            let instruction = decode::U::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::lui(instruction, regs).unwrap();
-            pc.increment();
-        }
-        0b0010111 => {
-            let instruction = decode::U::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::auipc(instruction, regs, *pc).unwrap();
-            pc.increment();
-        }
-        0b1101111 => {
-            let instruction = decode::J::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::jal(instruction, regs, pc).unwrap();
-        }
-        0b1100111 => {
-            let instruction = decode::I::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::jalr(instruction, regs, pc).unwrap();
-        }
-        0b1100011 => {
-            let instruction = decode::B::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::branch(instruction, regs, pc).unwrap();
-        }
-        0b0000011 => {
-            let instruction = decode::I::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::load(instruction, regs, memory).unwrap();
-            pc.increment();
-        }
-        0b0100011 => {
-            let instruction = decode::S::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::store(instruction, regs, memory).unwrap();
-            pc.increment();
-        }
-        0b0010011 => {
-            let instruction = decode::I::from_u32(encoded);
-            println!("{:?}", instruction);
-            if instruction.funct3.as_u8() == 0b001 || instruction.funct3.as_u8() == 0b101 {
-                T::shifti(instruction.into(), regs).unwrap()
-            } else {
-                T::mathi(instruction, regs).unwrap()
-            }
-            pc.increment();
-        }
-        0b0110011 => {
-            let instruction = decode::R::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::math(instruction, regs).unwrap();
-            pc.increment();
-        }
-        0b0111011 => {
-            let instruction = decode::R::from_u32(encoded);
-            println!("{:?}", instruction);
-            T::mathw(instruction, regs).unwrap();
-            pc.increment();
-        }
-        0b0011011 => {
-            let instruction = decode::I::from_u32(encoded);
-            println!("{:?}", instruction);
-            if instruction.funct3.as_u8() == 0b000 {
-                T::mathiw(instruction, regs).unwrap()
-            } else {
-                T::shiftiw(instruction.into(), regs).unwrap();
-            }
-            pc.increment();
-        }
-        0b0001111 => todo!("FENCE detected"),
-        0b1110011 => todo!("SYSTEM call"),
-        _ => panic!("Invalid OPCode"),
-    }
+    T::step(encoded, regs, pc, memory);
 }
 
 #[inline(always)]
