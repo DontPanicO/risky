@@ -192,6 +192,7 @@ fn step<T>(encoded: u32, regs: &mut registers::Registers<T>, pc: &mut T, memory:
 where
     T: Copy + Step + instructions::BaseInstruction + registers::ProgramCounter + std::fmt::LowerHex,
 {
+    println!("{:#034b} - PC: {:#0x}", encoded, pc);
     T::step(encoded, regs, pc, memory);
 }
 
