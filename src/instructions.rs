@@ -3,7 +3,7 @@ use crate::error::Error;
 use crate::instruction_ids::*;
 use crate::num::Unsigned;
 use crate::ops::*;
-use crate::registers::{Registers, ZeroOrRegister};
+use crate::registers::{Registers, Zero, ZeroOrRegister};
 
 const OPCODE_SIZE: u32 = 4;
 
@@ -67,94 +67,79 @@ pub trait BaseInstruction:
 impl BaseInstruction for u32 {}
 impl BaseInstruction for u64 {}
 
-macro_rules! impl_math {
-    ($t:ty $({ $($tt:tt)* })?) => {
-        impl Math for $t {
-            #[inline(always)]
-            fn math(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
-                let f: fn(Self, Self) -> Self = match instruction.id() {
-                    ADD => Add::add,
-                    SUB => Sub::sub,
-                    SLL => Sll::sll,
-                    SLT => Slt::slt,
-                    SLTU => Sltu::sltu,
-                    XOR => Xor::xor,
-                    SRL => Srl::srl,
-                    SRA => Sra::sra,
-                    OR => Or::or,
-                    AND => And::and,
-                    $($($tt)*)?
-                    _ => return Err(Error::InvalidOpCode),
-                };
+impl<T: Copy + BaseMath + Zero> Math for T {
+    #[inline(always)]
+    fn math(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let f: fn(Self, Self) -> Self = match instruction.id() {
+            ADD => Add::add,
+            SUB => Sub::sub,
+            SLL => Sll::sll,
+            SLT => Slt::slt,
+            SLTU => Sltu::sltu,
+            XOR => Xor::xor,
+            SRL => Srl::srl,
+            SRA => Sra::sra,
+            OR => Or::or,
+            AND => And::and,
+            _ => return Err(Error::InvalidOpCode),
+        };
 
-                match instruction.rd.into() {
-                    ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
-                    ZeroOrRegister::Register(reg) => {
-                        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
-                        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
-                        *regs.get_mut(reg) = f(src1, src2);
-                        Ok(())
-                    }
-                }
-            }
-        }
-    };
-}
-
-macro_rules! impl_mathi {
-    ($t:ty $({ $($tt:tt)* })?) => {
-        impl MathI for $t {
-            #[inline(always)]
-            fn mathi(instruction: I, regs: &mut Registers<Self>) -> Result<(), Error> {
-                let f: fn(Self, U12) -> Self = match instruction.id() {
-                    ADDI => Addi::addi,
-                    SLTI => Slti::slti,
-                    SLTIU => Sltiu::sltiu,
-                    XORI => Xori::xori,
-                    ORI => Ori::ori,
-                    ANDI => Andi::andi,
-                    $($($tt)*)?
-                    _ => return Err(Error::InvalidOpCode),
-                };
-
-                match instruction.rd.into() {
-                    ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
-                    ZeroOrRegister::Register(reg) => {
-                        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
-                        *regs.get_mut(reg) = f(src1, instruction.imm);
-                        Ok(())
-                    }
-                }
-            }
-        }
-    };
-}
-
-macro_rules! impl_shifti {
-    ($t:ty $({ $($tt:tt)* })?) => {
-        impl ShiftI for $t {
-            #[inline(always)]
-            fn shifti(instruction: Shift, regs: &mut Registers<Self>) -> Result<(), Error> {
-                let f: fn(Self, U5) -> Self = match instruction.id() {
-                    SLLI => Slli::slli,
-                    SRLI => Srli::srli,
-                    SRAI => Srai::srai,
-                    $($($tt)*)?
-                    _ => return Err(Error::InvalidOpCode),
-                };
-
-                let dest_reg = if let ZeroOrRegister::Register(reg) = instruction.rd.into() {
-                    reg
-                } else {
-                    return Err(Error::InvalidOpCode);
-                };
+        match instruction.rd.into() {
+            ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
+            ZeroOrRegister::Register(reg) => {
                 let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
-                *regs.get_mut(dest_reg) = f(src1, instruction.shamt);
-
+                let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+                *regs.get_mut(reg) = f(src1, src2);
                 Ok(())
             }
         }
-    };
+    }
+}
+
+impl<T: Copy + BaseMath + Zero> MathI for T {
+    #[inline(always)]
+    fn mathi(instruction: I, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let f: fn(Self, U12) -> Self = match instruction.id() {
+            ADDI => Addi::addi,
+            SLTI => Slti::slti,
+            SLTIU => Sltiu::sltiu,
+            XORI => Xori::xori,
+            ORI => Ori::ori,
+            ANDI => Andi::andi,
+            _ => return Err(Error::InvalidOpCode),
+        };
+
+        match instruction.rd.into() {
+            ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
+            ZeroOrRegister::Register(reg) => {
+                let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+                *regs.get_mut(reg) = f(src1, instruction.imm);
+                Ok(())
+            }
+        }
+    }
+}
+
+impl<T: Copy + BaseMath + Zero> ShiftI for T {
+    #[inline(always)]
+    fn shifti(instruction: Shift, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let f: fn(Self, U5) -> Self = match instruction.id() {
+            SLLI => Slli::slli,
+            SRLI => Srli::srli,
+            SRAI => Srai::srai,
+            _ => return Err(Error::InvalidOpCode),
+        };
+
+        let dest_reg = if let ZeroOrRegister::Register(reg) = instruction.rd.into() {
+            reg
+        } else {
+            return Err(Error::InvalidOpCode);
+        };
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        *regs.get_mut(dest_reg) = f(src1, instruction.shamt);
+
+        Ok(())
+    }
 }
 
 macro_rules! impl_branch {
@@ -234,12 +219,6 @@ macro_rules! impl_jalr {
     };
 }
 
-impl_math!(u32);
-impl_math!(u64);
-impl_mathi!(u32);
-impl_mathi!(u64);
-impl_shifti!(u32);
-impl_shifti!(u64);
 impl_branch!(u32);
 impl_branch!(u64);
 impl_jal!(u32);

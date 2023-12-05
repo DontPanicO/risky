@@ -1,6 +1,6 @@
 #[allow(clippy::missing_safety_doc)]
 pub unsafe trait Unsigned: Bitcast<Self::Signed> + As<Self::Signed> + Sized {
-    type Signed: Bitcast<Self> + As<Self>;
+    type Signed: Sized + Bitcast<Self> + As<Self>;
 }
 
 pub trait As<Shr = Self>: Sized {
@@ -10,6 +10,61 @@ pub trait As<Shr = Self>: Sized {
 pub trait Bitcast<Shr = Self>: Sized {
     fn bitcast(self) -> Shr;
 }
+
+pub trait Wrapping: Sized {
+    fn wrapping_add(self, rhs: Self) -> Self;
+    fn wrapping_sub(self, rhs: Self) -> Self;
+    fn wrapping_shl(self, rhs: u32) -> Self;
+    fn wrapping_shr(self, rhs: u32) -> Self;
+}
+
+pub trait UnsignedWrapping: Wrapping + Unsigned {
+    fn wrapping_add_signed(self, rhs: Self::Signed) -> Self;
+}
+
+macro_rules! impl_wrapping {
+    ($t:ty) => {
+        impl Wrapping for $t {
+            #[inline(always)]
+            fn wrapping_add(self, rhs: Self) -> Self {
+                <$t>::wrapping_add(self, rhs)
+            }
+
+            #[inline(always)]
+            fn wrapping_sub(self, rhs: Self) -> Self {
+                <$t>::wrapping_sub(self, rhs)
+            }
+
+            #[inline(always)]
+            fn wrapping_shl(self, rhs: u32) -> Self {
+                <$t>::wrapping_shl(self, rhs)
+            }
+
+            #[inline(always)]
+            fn wrapping_shr(self, rhs: u32) -> Self {
+                <$t>::wrapping_shr(self, rhs)
+            }
+        }
+    };
+}
+
+macro_rules! impl_wrapping_unsigned {
+    ($t:ty, $st:ty) => {
+        impl UnsignedWrapping for $t {
+            #[inline(always)]
+            fn wrapping_add_signed(self, rhs: $st) -> Self {
+                <$t>::wrapping_add_signed(self, rhs)
+            }
+        }
+    };
+}
+
+impl_wrapping!(u32);
+impl_wrapping!(u64);
+impl_wrapping!(i32);
+impl_wrapping!(i64);
+impl_wrapping_unsigned!(u32, i32);
+impl_wrapping_unsigned!(u64, i64);
 
 macro_rules! impl_as {
     ($t:ty => $($tt:ty),* $(,)?) => {

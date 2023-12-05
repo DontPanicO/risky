@@ -1,4 +1,5 @@
 use crate::decode::{U12, U5};
+use crate::num::{As, Bitcast, Unsigned, UnsignedWrapping, Wrapping};
 
 pub trait Add {
     fn add(self, other: Self) -> Self;
@@ -140,163 +141,225 @@ pub trait BaseMathW:
 {
 }
 
-macro_rules! impl_math {
-    (BASE = $t:ty, SIGNED = $st:ty, SHIFT = $bt:ty, CAST_METHOD = $cast_method:ident $(,)?) => {
-        impl Add for $t {
-            #[inline(always)]
-            fn add(self, other: Self) -> Self {
-                <$t>::wrapping_add(self, other)
-            }
-        }
-
-        impl Sub for $t {
-            #[inline(always)]
-            fn sub(self, other: Self) -> Self {
-                <$t>::wrapping_sub(self, other)
-            }
-        }
-
-        impl Sll for $t {
-            #[inline(always)]
-            fn sll(self, other: Self) -> Self {
-                <$t>::wrapping_shl(self, other as $bt)
-            }
-        }
-
-        impl Slt for $t {
-            #[inline(always)]
-            fn slt(self, other: Self) -> Self {
-                unsafe {
-                    (core::mem::transmute::<_, $st>(self) < core::mem::transmute(other)) as $t
-                }
-            }
-        }
-
-        impl Sltu for $t {
-            #[inline(always)]
-            fn sltu(self, other: Self) -> Self {
-                (self < other) as Self
-            }
-        }
-
-        impl Xor for $t {
-            #[inline(always)]
-            fn xor(self, other: Self) -> Self {
-                std::ops::BitXor::bitxor(self, other)
-            }
-        }
-
-        impl Srl for $t {
-            #[inline(always)]
-            fn srl(self, other: Self) -> Self {
-                <$t>::wrapping_shr(self, other as $bt)
-            }
-        }
-
-        impl Sra for $t {
-            #[inline(always)]
-            fn sra(self, other: Self) -> Self {
-                unsafe {
-                    core::mem::transmute(
-                        core::mem::transmute::<_, $st>(self).wrapping_shr(other as $bt),
-                    )
-                }
-            }
-        }
-
-        impl Or for $t {
-            #[inline(always)]
-            fn or(self, other: Self) -> Self {
-                std::ops::BitOr::bitor(self, other)
-            }
-        }
-
-        impl And for $t {
-            #[inline(always)]
-            fn and(self, other: Self) -> Self {
-                std::ops::BitAnd::bitand(self, other)
-            }
-        }
-
-        impl Addi for $t {
-            #[inline(always)]
-            fn addi(self, other: U12) -> Self {
-                <$t>::wrapping_add_signed(self, other.sign_extend() as $st)
-            }
-        }
-
-        impl Slti for $t {
-            #[inline(always)]
-            fn slti(self, other: U12) -> Self {
-                Slt::slt(self, other.sign_extend() as $t)
-            }
-        }
-
-        impl Sltiu for $t {
-            #[inline(always)]
-            fn sltiu(self, other: U12) -> Self {
-                Sltu::sltu(self, other.$cast_method())
-            }
-        }
-
-        impl Xori for $t {
-            #[inline(always)]
-            fn xori(self, other: U12) -> Self {
-                Xor::xor(self, other.$cast_method())
-            }
-        }
-
-        impl Ori for $t {
-            #[inline(always)]
-            fn ori(self, other: U12) -> Self {
-                Or::or(self, other.$cast_method())
-            }
-        }
-
-        impl Andi for $t {
-            #[inline(always)]
-            fn andi(self, other: U12) -> Self {
-                And::and(self, other.$cast_method())
-            }
-        }
-
-        impl Slli for $t {
-            #[inline(always)]
-            fn slli(self, other: U5) -> Self {
-                Sll::sll(self, other.$cast_method())
-            }
-        }
-
-        impl Srli for $t {
-            #[inline(always)]
-            fn srli(self, other: U5) -> Self {
-                Srl::srl(self, other.$cast_method())
-            }
-        }
-
-        impl Srai for $t {
-            #[inline(always)]
-            fn srai(self, other: U5) -> Self {
-                Sra::sra(self, other.$cast_method())
-            }
-        }
-
-        impl BaseMath for $t {}
-    };
+impl<T: Wrapping> Add for T {
+    #[inline(always)]
+    fn add(self, other: Self) -> Self {
+        T::wrapping_add(self, other)
+    }
 }
 
-impl_math! {
-    BASE = u32,
-    SIGNED = i32,
-    SHIFT = u32,
-    CAST_METHOD = as_u32,
+impl<T: Wrapping> Sub for T {
+    #[inline(always)]
+    fn sub(self, other: Self) -> Self {
+        T::wrapping_sub(self, other)
+    }
 }
 
-impl_math! {
-    BASE = u64,
-    SIGNED = i64,
-    SHIFT = u32,
-    CAST_METHOD = as_u64,
+impl<T> Sll for T
+where
+    T: Wrapping,
+    T: As<u32>,
+{
+    #[inline(always)]
+    fn sll(self, other: Self) -> Self {
+        T::wrapping_shl(self, other.r#as())
+    }
+}
+
+impl<T> Slt for T
+where
+    T: Unsigned,
+    T: core::cmp::Ord,
+    <T as Unsigned>::Signed: core::cmp::Ord,
+    bool: As<T>,
+{
+    #[inline(always)]
+    fn slt(self, other: Self) -> Self {
+        (Bitcast::<<T as Unsigned>::Signed>::bitcast(self)
+            < Bitcast::<<T as Unsigned>::Signed>::bitcast(other))
+        .r#as()
+    }
+}
+
+impl<T> Sltu for T
+where
+    T: core::cmp::Ord,
+    bool: As<T>,
+{
+    #[inline(always)]
+    fn sltu(self, other: Self) -> Self {
+        (self < other).r#as()
+    }
+}
+
+impl<T: core::ops::BitXor<Output = T>> Xor for T {
+    #[inline(always)]
+    fn xor(self, other: Self) -> Self {
+        core::ops::BitXor::bitxor(self, other)
+    }
+}
+
+impl<T> Srl for T
+where
+    T: Wrapping,
+    T: As<u32>,
+{
+    #[inline(always)]
+    fn srl(self, other: Self) -> Self {
+        T::wrapping_shr(self, other.r#as())
+    }
+}
+
+impl<T> Sra for T
+where
+    T: Unsigned,
+    <T as Unsigned>::Signed: Wrapping,
+    T: As<u32>,
+{
+    #[inline(always)]
+    fn sra(self, other: Self) -> Self {
+        (<T as Bitcast<T::Signed>>::bitcast(self))
+            .wrapping_shr(other.r#as())
+            .bitcast()
+    }
+}
+
+impl<T: core::ops::BitOr<Output = T>> Or for T {
+    #[inline(always)]
+    fn or(self, other: Self) -> Self {
+        core::ops::BitOr::bitor(self, other)
+    }
+}
+
+impl<T: core::ops::BitAnd<Output = T>> And for T {
+    #[inline(always)]
+    fn and(self, other: Self) -> Self {
+        core::ops::BitAnd::bitand(self, other)
+    }
+}
+
+impl<T> Addi for T
+where
+    T: UnsignedWrapping,
+    i16: As<<T as Unsigned>::Signed>,
+{
+    #[inline(always)]
+    fn addi(self, other: U12) -> Self {
+        T::wrapping_add_signed(self, other.sign_extend().r#as())
+    }
+}
+
+impl<T> Slti for T
+where
+    T: Unsigned,
+    <T as Unsigned>::Signed: core::cmp::Ord,
+    i16: As<T>,
+    bool: As<T>,
+{
+    #[inline(always)]
+    fn slti(self, other: U12) -> Self {
+        (Bitcast::<<T as Unsigned>::Signed>::bitcast(self)
+            < Bitcast::<<T as Unsigned>::Signed>::bitcast(other.sign_extend().r#as()))
+        .r#as()
+    }
+}
+
+impl<T: Copy + Unsigned> Sltiu for T
+where
+    T: core::cmp::Ord,
+    u16: As<T>,
+    bool: As<T>,
+{
+    #[inline(always)]
+    fn sltiu(self, other: U12) -> Self {
+        (self < other.as_u16().r#as()).r#as()
+    }
+}
+
+impl<T> Xori for T
+where
+    T: core::ops::BitXor<Output = T>,
+    u16: As<T>,
+{
+    #[inline(always)]
+    fn xori(self, other: U12) -> Self {
+        core::ops::BitXor::bitxor(self, other.as_u16().r#as())
+    }
+}
+
+impl<T> Ori for T
+where
+    T: core::ops::BitOr<Output = T>,
+    u16: As<T>,
+{
+    #[inline(always)]
+    fn ori(self, other: U12) -> Self {
+        core::ops::BitOr::bitor(self, other.as_u16().r#as())
+    }
+}
+
+impl<T> Andi for T
+where
+    T: core::ops::BitAnd<Output = T>,
+    u16: As<T>,
+{
+    #[inline(always)]
+    fn andi(self, other: U12) -> Self {
+        core::ops::BitAnd::bitand(self, other.as_u16().r#as())
+    }
+}
+
+impl<T: Wrapping> Slli for T {
+    #[inline(always)]
+    fn slli(self, other: U5) -> Self {
+        self.wrapping_shl(other.as_u32())
+    }
+}
+
+impl<T: Wrapping> Srli for T {
+    #[inline(always)]
+    fn srli(self, other: U5) -> Self {
+        self.wrapping_shr(other.as_u32())
+    }
+}
+
+impl<T> Srai for T
+where
+    T: Unsigned,
+    T: Wrapping,
+    <T as Unsigned>::Signed: Wrapping,
+{
+    #[inline(always)]
+    fn srai(self, other: U5) -> Self {
+        (<T as Bitcast<T::Signed>>::bitcast(self))
+            .wrapping_shr(other.as_u32())
+            .bitcast()
+    }
+}
+
+impl<
+        T: Copy
+            + Add
+            + Sub
+            + Sll
+            + Slt
+            + Sltu
+            + Xor
+            + Srl
+            + Sra
+            + Or
+            + And
+            + Addi
+            + Slti
+            + Sltiu
+            + Xori
+            + Ori
+            + Andi
+            + Slli
+            + Srli
+            + Srai,
+    > BaseMath for T
+{
 }
 
 impl Addw for u64 {
