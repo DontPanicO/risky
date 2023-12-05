@@ -42,6 +42,7 @@ trait Step: Sized {
 }
 
 impl Step for u32 {
+    #[inline(always)]
     fn step(encoded: u32, regs: &mut registers::Registers<Self>, pc: &mut Self, memory: &mut [u8]) {
         match bit_extract(encoded, 0, 6) {
             0b0110111 => {
@@ -107,6 +108,7 @@ impl Step for u32 {
 }
 
 impl Step for u64 {
+    #[inline(always)]
     fn step(encoded: u32, regs: &mut registers::Registers<Self>, pc: &mut Self, memory: &mut [u8]) {
         match bit_extract(encoded, 0, 6) {
             0b0110111 => {
