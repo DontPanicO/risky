@@ -9,6 +9,7 @@ pub(crate) mod ops;
 pub(crate) mod registers;
 
 use crate::registers::ProgramCounter;
+use ::elf::file::Class;
 
 fn main() {
     let args: Vec<_> = std::env::args().collect();
@@ -18,22 +19,37 @@ fn main() {
     }
     let path = &args[1];
     let mut memory = [0u8; 262140];
-    let mut regs = registers::Registers::with_sp(256);
     let file = std::fs::read(path).unwrap();
     let elfdata = elf::load_elf_le(&file).unwrap();
-    let mut program_counter = elfdata.ehdr.e_entry;
     for sg in elfdata.segments().unwrap().iter() {
         let sg_data = elfdata.segment_data(&sg).unwrap();
         println!("{}, {}", sg.p_paddr, sg.p_memsz);
         mem::memw(sg_data, &mut memory, sg.p_paddr as usize).unwrap();
     }
     //...
-    loop {
-        // fetch instruction (libmem::memr(4)), increase pc of 4
-        let ins = u32::from_le_bytes(mem::memr32(&memory, program_counter as usize).unwrap());
-        // decode and execute instruction
-        step(ins, &mut regs, &mut program_counter, &mut memory);
-        // increment the program counter
+    match elfdata.ehdr.class {
+        Class::ELF32 => {
+            let mut program_counter = elfdata.ehdr.e_entry as u32;
+            let mut regs = registers::Registers::with_sp(256);
+            loop {
+                // fetch instruction (libmem::memr(4))
+                let ins =
+                    u32::from_le_bytes(mem::memr32(&memory, program_counter as usize).unwrap());
+                // decode and execute instruction + increment the program counter
+                step(ins, &mut regs, &mut program_counter, &mut memory);
+            }
+        }
+        Class::ELF64 => {
+            let mut program_counter = elfdata.ehdr.e_entry;
+            let mut regs = registers::Registers::with_sp(256);
+            loop {
+                // fetch instruction (libmem::memr(4))
+                let ins =
+                    u32::from_le_bytes(mem::memr32(&memory, program_counter as usize).unwrap());
+                // decode and execute instruction + increment the program counter
+                step(ins, &mut regs, &mut program_counter, &mut memory);
+            }
+        }
     }
 }
 
