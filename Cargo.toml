@@ -1,5 +1,5 @@
 [package]
-name = "riscvemu"
+name = "risky"
 version = "0.1.0"
 edition = "2021"
 
