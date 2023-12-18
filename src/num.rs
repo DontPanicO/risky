@@ -21,12 +21,33 @@ pub trait Wrapping: Sized {
     fn wrapping_rem(self, rhs: Self) -> Self;
 }
 
-pub trait Widening: Sized {
-    fn widening_mul(self, rhs: Self) -> (Self, Self);
-}
-
 pub trait UnsignedWrapping: Wrapping + Unsigned {
     fn wrapping_add_signed(self, rhs: Self::Signed) -> Self;
+}
+
+pub trait Shiftable: As<Self::To> + Sized {
+    type To;
+    const SHIFT_BITS: u32;
+}
+
+impl Shiftable for u32 {
+    type To = u64;
+    const SHIFT_BITS: u32 = 32;
+}
+
+impl Shiftable for i32 {
+    type To = i64;
+    const SHIFT_BITS: u32 = 32;
+}
+
+impl Shiftable for u64 {
+    type To = u128;
+    const SHIFT_BITS: u32 = 64;
+}
+
+impl Shiftable for i64 {
+    type To = i128;
+    const SHIFT_BITS: u32 = 64;
 }
 
 macro_rules! impl_wrapping {
@@ -70,18 +91,6 @@ macro_rules! impl_wrapping {
     };
 }
 
-macro_rules! impl_widening {
-    ($t:ty, $wide_t:ty, $bits:literal) => {
-        impl Widening for $t {
-            #[inline(always)]
-            fn widening_mul(self, rhs: Self) -> (Self, Self) {
-                let wide = (self as $wide_t) * (rhs as $wide_t);
-                (wide as $t, (wide >> $bits) as $t)
-            }
-        }
-    };
-}
-
 macro_rules! impl_wrapping_unsigned {
     ($t:ty, $st:ty) => {
         impl UnsignedWrapping for $t {
@@ -95,12 +104,10 @@ macro_rules! impl_wrapping_unsigned {
 
 impl_wrapping!(u32);
 impl_wrapping!(u64);
+impl_wrapping!(u128);
 impl_wrapping!(i32);
 impl_wrapping!(i64);
-impl_widening!(u32, u64, 32);
-impl_widening!(u64, u128, 64);
-impl_widening!(i32, i64, 32);
-impl_widening!(i64, i128, 64);
+impl_wrapping!(i128);
 impl_wrapping_unsigned!(u32, i32);
 impl_wrapping_unsigned!(u64, i64);
 

@@ -1,5 +1,5 @@
 use crate::decode::{U12, U5};
-use crate::num::{As, Bitcast, Unsigned, UnsignedWrapping, Widening, Wrapping};
+use crate::num::{As, Bitcast, Shiftable, Unsigned, UnsignedWrapping, Wrapping};
 
 pub trait Add {
     fn add(self, other: Self) -> Self;
@@ -379,31 +379,53 @@ where
     }
 }
 
-impl<T: Widening> Mul for T {
+impl<T: Wrapping> Mul for T {
     #[inline(always)]
     fn mul(self, other: Self) -> Self {
-        T::widening_mul(self, other).0
+        T::wrapping_mul(self, other)
     }
 }
 
-impl<T: Widening> Mulh for T {
+impl<T> Mulh for T
+where
+    T: Unsigned,
+    <T as Unsigned>::Signed: Shiftable,
+    <<T as Unsigned>::Signed as Shiftable>::To: Wrapping,
+    <T as Unsigned>::Signed: As<<<T as Unsigned>::Signed as Shiftable>::To>,
+    <<T as Unsigned>::Signed as Shiftable>::To: As<T>,
+{
     #[inline(always)]
     fn mulh(self, other: Self) -> Self {
-        T::widening_mul(self, other).1
+        <T as Bitcast<T::Signed>>::bitcast(self)
+            .r#as()
+            .wrapping_mul(<T as Bitcast<T::Signed>>::bitcast(other).r#as())
+            .wrapping_shr(<<T as Unsigned>::Signed as Shiftable>::SHIFT_BITS)
+            .r#as()
     }
 }
 
-impl<T: Widening> Mulhu for T {
+impl<T> Mulhu for T
+where
+    T: Unsigned,
+    T: Wrapping,
+    T: Shiftable,
+    <T as Shiftable>::To: Wrapping,
+    <T as Shiftable>::To: As<T>,
+    T: As<<T as Shiftable>::To>,
+{
     #[inline(always)]
     fn mulhu(self, other: Self) -> Self {
-        T::widening_mul(self, other).1
+        <T as Shiftable>::To::wrapping_mul(self.r#as(), other.r#as())
+            .wrapping_shr(<T as Shiftable>::SHIFT_BITS)
+            .r#as()
     }
 }
 
-impl<T: Widening> Mulhsu for T {
+impl<T: Wrapping> Mulhsu for T {
     #[inline(always)]
     fn mulhsu(self, other: Self) -> Self {
-        T::widening_mul(self, other).1
+        // TODO: implement it
+        T::wrapping_add(self, other)
     }
 }
 

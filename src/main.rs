@@ -537,6 +537,32 @@ mod tests {
     }
 
     #[test]
+    fn test_math_mulh() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = -12i32 as u32;
+        *regs.get_mut(registers::Register::X14) = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000001_01110_01101_001_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, (((-12i64 * 24i64) >> 32) as u64) as u32);
+    }
+
+    #[test]
+    fn test_math_mulhu() {
+        let mut memory = [0u8; 0];
+        let mut regs = registers::Registers::default();
+        *regs.get_mut(registers::Register::X13) = 12;
+        *regs.get_mut(registers::Register::X14) = 6;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000001_01110_01101_011_01100_0110011;
+        step(instruction, &mut regs, &mut program_counter, &mut memory);
+        let r12 = regs.get(registers::Register::X12);
+        assert_eq!(r12, 0);
+    }
+
+    #[test]
     fn test_mathi_addi() {
         let mut memory = [0u8; 0];
         let mut regs = registers::Registers::default();
