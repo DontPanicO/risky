@@ -1,5 +1,5 @@
 use crate::decode::{U12, U5};
-use crate::num::{As, Bitcast, Unsigned, UnsignedWrapping, Wrapping, Widening};
+use crate::num::{As, Bitcast, Unsigned, UnsignedWrapping, Widening, Wrapping};
 
 pub trait Add {
     fn add(self, other: Self) -> Self;
@@ -463,7 +463,7 @@ impl<
             + Div
             + Divu
             + Rem
-            + Remu
+            + Remu,
     > BaseMath for T
 {
 }
