@@ -84,6 +84,7 @@ impl<T: Copy + BaseMath + Zero> Math for T {
             MUL => Mul::mul,
             MULH => Mulh::mulh,
             MULHSU => Mulhsu::mulhsu,
+            MULHU => Mulhu::mulhu,
             DIV => Div::div,
             DIVU => Divu::divu,
             REM => Rem::rem,
