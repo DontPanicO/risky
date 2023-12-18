@@ -81,6 +81,13 @@ impl<T: Copy + BaseMath + Zero> Math for T {
             SRA => Sra::sra,
             OR => Or::or,
             AND => And::and,
+            MUL => Mul::mul,
+            MULH => Mulh::mulh,
+            MULHSU => Mulhsu::mulhsu,
+            DIV => Div::div,
+            DIVU => Divu::divu,
+            REM => Rem::rem,
+            REMU => Remu::remu,
             _ => return Err(Error::InvalidOpCode),
         };
 

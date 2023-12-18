@@ -1,5 +1,5 @@
 use crate::decode::{U12, U5};
-use crate::num::{As, Bitcast, Unsigned, UnsignedWrapping, Wrapping};
+use crate::num::{As, Bitcast, Unsigned, UnsignedWrapping, Wrapping, Widening};
 
 pub trait Add {
     fn add(self, other: Self) -> Self;
@@ -113,6 +113,40 @@ pub trait Sraiw {
     fn sraiw(self, other: Self) -> Self;
 }
 
+// M extension
+
+pub trait Mul {
+    fn mul(self, other: Self) -> Self;
+}
+
+pub trait Mulh {
+    fn mulh(self, other: Self) -> Self;
+}
+
+pub trait Mulhsu {
+    fn mulhsu(self, other: Self) -> Self;
+}
+
+pub trait Mulhu {
+    fn mulhu(self, other: Self) -> Self;
+}
+
+pub trait Div {
+    fn div(self, other: Self) -> Self;
+}
+
+pub trait Divu {
+    fn divu(self, other: Self) -> Self;
+}
+
+pub trait Rem {
+    fn rem(self, other: Self) -> Self;
+}
+
+pub trait Remu {
+    fn remu(self, other: Self) -> Self;
+}
+
 pub trait BaseMath:
     Add
     + Sub
@@ -133,6 +167,14 @@ pub trait BaseMath:
     + Slli
     + Srli
     + Srai
+    + Mul
+    + Mulh
+    + Mulhsu
+    + Mulhu
+    + Div
+    + Divu
+    + Rem
+    + Remu
 {
 }
 
@@ -337,6 +379,62 @@ where
     }
 }
 
+impl<T: Widening> Mul for T {
+    #[inline(always)]
+    fn mul(self, other: Self) -> Self {
+        T::widening_mul(self, other).0
+    }
+}
+
+impl<T: Widening> Mulh for T {
+    #[inline(always)]
+    fn mulh(self, other: Self) -> Self {
+        T::widening_mul(self, other).1
+    }
+}
+
+impl<T: Widening> Mulhu for T {
+    #[inline(always)]
+    fn mulhu(self, other: Self) -> Self {
+        T::widening_mul(self, other).1
+    }
+}
+
+impl<T: Widening> Mulhsu for T {
+    #[inline(always)]
+    fn mulhsu(self, other: Self) -> Self {
+        T::widening_mul(self, other).1
+    }
+}
+
+impl<T: Wrapping> Div for T {
+    #[inline(always)]
+    fn div(self, other: Self) -> Self {
+        T::wrapping_div(self, other)
+    }
+}
+
+impl<T: Wrapping> Divu for T {
+    #[inline(always)]
+    fn divu(self, other: Self) -> Self {
+        T::wrapping_div(self, other)
+    }
+}
+
+impl<T: Wrapping> Rem for T {
+    #[inline(always)]
+    fn rem(self, other: Self) -> Self {
+        T::wrapping_rem(self, other)
+    }
+}
+
+impl<T: Wrapping> Remu for T {
+    #[inline(always)]
+    fn remu(self, other: Self) -> Self {
+        T::wrapping_rem(self, other)
+    }
+}
+
 impl<
         T: Copy
             + Add
@@ -357,7 +455,15 @@ impl<
             + Andi
             + Slli
             + Srli
-            + Srai,
+            + Srai
+            + Mul
+            + Mulh
+            + Mulhsu
+            + Mulhu
+            + Div
+            + Divu
+            + Rem
+            + Remu
     > BaseMath for T
 {
 }
@@ -460,3 +566,5 @@ impl Sraiw for u64 {
         }
     }
 }
+
+impl BaseMathW for u64 {}

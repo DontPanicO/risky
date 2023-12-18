@@ -60,4 +60,13 @@ def_uconst! {
     pub const BGE: U3 = 0b101;
     pub const BLTU: U3 = 0b110;
     pub const BGEU: U3 = 0b111;
+    // M extension
+    pub const MUL: U10 = 0b0000001_000;
+    pub const MULH: U10 = 0b0000001_001;
+    pub const MULHSU: U10 = 0b0000001_010;
+    pub const MULHU: U10 = 0b0000001_011;
+    pub const DIV: U10 = 0b0000001_100;
+    pub const DIVU: U10 = 0b0000001_101;
+    pub const REM: U10 = 0b0000001_110;
+    pub const REMU: U10 = 0b0000001_111;
 }

@@ -16,6 +16,13 @@ pub trait Wrapping: Sized {
     fn wrapping_sub(self, rhs: Self) -> Self;
     fn wrapping_shl(self, rhs: u32) -> Self;
     fn wrapping_shr(self, rhs: u32) -> Self;
+    fn wrapping_mul(self, rhs: Self) -> Self;
+    fn wrapping_div(self, rhs: Self) -> Self;
+    fn wrapping_rem(self, rhs: Self) -> Self;
+}
+
+pub trait Widening: Sized {
+    fn widening_mul(self, rhs: Self) -> (Self, Self);
 }
 
 pub trait UnsignedWrapping: Wrapping + Unsigned {
@@ -44,6 +51,33 @@ macro_rules! impl_wrapping {
             fn wrapping_shr(self, rhs: u32) -> Self {
                 <$t>::wrapping_shr(self, rhs)
             }
+
+            #[inline(always)]
+            fn wrapping_mul(self, rhs: Self) -> Self {
+                <$t>::wrapping_mul(self, rhs)
+            }
+
+            #[inline(always)]
+            fn wrapping_div(self, rhs: Self) -> Self {
+                <$t>::wrapping_div(self, rhs)
+            }
+
+            #[inline(always)]
+            fn wrapping_rem(self, rhs: Self) -> Self {
+                <$t>::wrapping_rem(self, rhs)
+            }
+        }
+    };
+}
+
+macro_rules! impl_widening {
+    ($t:ty, $wide_t:ty, $bits:literal) => {
+        impl Widening for $t {
+            #[inline(always)]
+            fn widening_mul(self, rhs: Self) -> (Self, Self) {
+                let wide = (self as $wide_t) * (rhs as $wide_t);
+                (wide as $t, (wide >> $bits) as $t)
+            }
         }
     };
 }
@@ -63,6 +97,10 @@ impl_wrapping!(u32);
 impl_wrapping!(u64);
 impl_wrapping!(i32);
 impl_wrapping!(i64);
+impl_widening!(u32, u64, 32);
+impl_widening!(u64, u128, 64);
+impl_widening!(i32, i64, 32);
+impl_widening!(i64, i128, 64);
 impl_wrapping_unsigned!(u32, i32);
 impl_wrapping_unsigned!(u64, i64);
 
