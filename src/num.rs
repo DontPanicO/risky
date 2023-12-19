@@ -30,26 +30,6 @@ pub trait Shiftable: As<Self::To> + Sized {
     const SHIFT_BITS: u32;
 }
 
-impl Shiftable for u32 {
-    type To = u64;
-    const SHIFT_BITS: u32 = 32;
-}
-
-impl Shiftable for i32 {
-    type To = i64;
-    const SHIFT_BITS: u32 = 32;
-}
-
-impl Shiftable for u64 {
-    type To = u128;
-    const SHIFT_BITS: u32 = 64;
-}
-
-impl Shiftable for i64 {
-    type To = i128;
-    const SHIFT_BITS: u32 = 64;
-}
-
 macro_rules! impl_wrapping {
     ($t:ty) => {
         impl Wrapping for $t {
@@ -102,6 +82,15 @@ macro_rules! impl_wrapping_unsigned {
     };
 }
 
+macro_rules! impl_shiftable {
+    ($t:ty, $shift_t:ty, $nbits:literal) => {
+        impl Shiftable for $t {
+            type To = $shift_t;
+            const SHIFT_BITS: u32 = $nbits;
+        }
+    };
+}
+
 impl_wrapping!(u32);
 impl_wrapping!(u64);
 impl_wrapping!(u128);
@@ -110,6 +99,10 @@ impl_wrapping!(i64);
 impl_wrapping!(i128);
 impl_wrapping_unsigned!(u32, i32);
 impl_wrapping_unsigned!(u64, i64);
+impl_shiftable!(u32, u64, 32);
+impl_shiftable!(i32, i64, 32);
+impl_shiftable!(u64, u128, 64);
+impl_shiftable!(i64, i128, 64);
 
 macro_rules! impl_as {
     ($t:ty => $($tt:ty),* $(,)?) => {
