@@ -3,7 +3,7 @@ use crate::error::Error;
 use crate::instruction_ids::*;
 use crate::num::Unsigned;
 use crate::ops::*;
-use crate::registers::{Registers, Zero, ZeroOrRegister};
+use crate::registers::{CsrRegisters, Registers, Zero, ZeroOrRegister};
 
 const OPCODE_SIZE: u32 = 4;
 
@@ -57,6 +57,14 @@ pub trait Lui: Sized {
 
 pub trait Auipc: Sized {
     fn auipc(instruction: U, regs: &mut Registers<Self>, pc: Self) -> Result<(), Error>;
+}
+
+pub trait Csr: Sized {
+    fn csr(
+        instruction: I,
+        regs: &mut Registers<Self>,
+        csrs: &mut CsrRegisters<Self>,
+    ) -> Result<(), Error>;
 }
 
 pub trait BaseInstruction:
@@ -422,6 +430,33 @@ impl Auipc for u64 {
         *dest = pc.wrapping_add(unsafe {
             core::mem::transmute(core::mem::transmute::<_, i32>(instruction.imm) as i64)
         });
+        Ok(())
+    }
+}
+
+impl<T: Copy + Zero + BaseCsr> Csr for T {
+    #[inline(always)]
+    fn csr(
+        instruction: I,
+        regs: &mut Registers<Self>,
+        csrs: &mut CsrRegisters<Self>,
+    ) -> Result<(), Error> {
+        let csr = csrs
+            .get_mut(instruction.imm.as_u16() as usize)
+            .ok_or(Error::InvalidOpCode)?;
+        let src = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        let dest = ZeroOrRegister::from_u5(instruction.rd)
+            .fetch_mut(regs)
+            .ok_or(Error::InvalidOpCode)?;
+        *csr = match instruction.id() {
+            CSRRW => Csrrw::csrrw(src, dest, csr),
+            CSRRS => Csrrs::csrrs(src, dest, csr),
+            CSRRC => Csrrc::csrrc(src, dest, csr),
+            CSRRWI => Csrrwi::csrrwi(instruction.rs1, dest, csr),
+            CSRRSI => Csrrsi::csrrsi(instruction.rs1, dest, csr),
+            CSRRCI => Csrrci::csrrci(instruction.rs1, dest, csr),
+            _ => return Err(Error::InvalidOpCode),
+        };
         Ok(())
     }
 }

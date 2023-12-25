@@ -65,6 +65,10 @@ pub enum ZeroOrRegister {
 #[derive(Debug)]
 pub struct Registers<T>([T; 31]);
 
+#[repr(transparent)]
+#[derive(Debug)]
+pub struct CsrRegisters<T>([T; 4096]);
+
 const _: [(); 0] = [(); ((Register::X31 as usize + 1) * core::mem::size_of::<u32>())
     - core::mem::size_of::<Registers<u32>>()];
 
@@ -117,6 +121,32 @@ impl<T: Copy + Default> Default for Registers<T> {
     #[inline]
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<T: Copy + Default> CsrRegisters<T> {
+    #[inline(always)]
+    pub fn new() -> Self {
+        Self([Default::default(); 4096])
+    }
+}
+
+impl<T: Copy> CsrRegisters<T> {
+    #[allow(dead_code)]
+    #[inline(always)]
+    pub fn get(&self, reg: usize) -> T {
+        self.0[reg]
+    }
+}
+
+impl<T> CsrRegisters<T> {
+    #[inline(always)]
+    pub fn get_mut(&mut self, reg: usize) -> Option<&mut T> {
+        let rw = reg >> 10 & 3;
+        if rw == 3 {
+            return Some(&mut self.0[reg]);
+        }
+        None
     }
 }
 

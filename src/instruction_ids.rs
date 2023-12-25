@@ -69,4 +69,11 @@ def_uconst! {
     pub const DIVU: U10 = 0b0000001_101;
     pub const REM: U10 = 0b0000001_110;
     pub const REMU: U10 = 0b0000001_111;
+    // Zicsr Extension
+    pub const CSRRW: U3 = 0b001;
+    pub const CSRRS: U3 = 0b010;
+    pub const CSRRC: U3 = 0b011;
+    pub const CSRRWI: U3 = 0b101;
+    pub const CSRRSI: U3 = 0b110;
+    pub const CSRRCI: U3 = 0b111;
 }
