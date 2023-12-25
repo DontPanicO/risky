@@ -150,7 +150,7 @@ impl<T> CsrRegisters<T> {
     #[inline(always)]
     pub fn get_mut(&mut self, reg: usize) -> Option<&mut T> {
         let rw = reg >> 10 & 3;
-        if rw == 3 {
+        if rw != 3 {
             return Some(&mut self.0[reg]);
         }
         None
