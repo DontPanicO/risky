@@ -37,9 +37,6 @@ impl<T: Copy> Csrrw for T {
 impl<T: Copy + std::ops::BitOr<Output = T>> Csrrs for T {
     #[inline(always)]
     fn csrrs(src: Self, dest: &mut Self, csr: &mut Self) -> Self {
-        // For both CSRRS and CSRRC, if rs1=x0, then the instruction will not write to the CSR at all, and
-        // so shall not cause any of the side effects that might otherwise occur on a CSR write, such as raising
-        // illegal instruction exceptions on accesses to read-only CSRs.
         *dest = *csr;
         *csr | src
     }
@@ -48,9 +45,6 @@ impl<T: Copy + std::ops::BitOr<Output = T>> Csrrs for T {
 impl<T: Copy + std::ops::BitAnd<Output = T> + std::ops::Not<Output = T>> Csrrc for T {
     #[inline(always)]
     fn csrrc(src: Self, dest: &mut Self, csr: &mut Self) -> Self {
-        // For both CSRRS and CSRRC, if rs1=x0, then the instruction will not write to the CSR at all, and
-        // so shall not cause any of the side effects that might otherwise occur on a CSR write, such as raising
-        // illegal instruction exceptions on accesses to read-only CSRs.
         *dest = *csr;
         *csr & !src
     }
@@ -76,9 +70,6 @@ where
 {
     #[inline(always)]
     fn csrrsi(imm: U5, dest: &mut Self, csr: &mut Self) -> Self {
-        // For both CSRRS and CSRRC, if rs1=x0, then the instruction will not write to the CSR at all, and
-        // so shall not cause any of the side effects that might otherwise occur on a CSR write, such as raising
-        // illegal instruction exceptions on accesses to read-only CSRs.
         *dest = *csr;
         *csr | imm.as_u8().r#as()
     }
@@ -93,9 +84,6 @@ where
 {
     #[inline(always)]
     fn csrrci(imm: U5, dest: &mut Self, csr: &mut Self) -> Self {
-        // For both CSRRS and CSRRC, if rs1=x0, then the instruction will not write to the CSR at all, and
-        // so shall not cause any of the side effects that might otherwise occur on a CSR write, such as raising
-        // illegal instruction exceptions on accesses to read-only CSRs.
         *dest = *csr;
         *csr & !imm.as_u8().r#as()
     }

@@ -1024,4 +1024,29 @@ mod tests {
         assert_eq!(r12, 24);
         assert_eq!(csr1, 24 & !13);
     }
+
+    #[test]
+    #[should_panic]
+    fn test_csr_readonly_write() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = 12;
+        let mut program_counter = 0u32;
+        let instruction = 0b110000000001_01101_001_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+    }
+
+    #[test]
+    fn test_csr_readonly_write_rs_zero() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X12) = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b110000000001_00000_001_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        let csr1 = regfile.csrs.get(3073);
+        assert_eq!(r12, 0);
+        assert_eq!(csr1, 0);
+    }
 }

@@ -441,22 +441,29 @@ impl<T: Copy + Zero + BaseCsr> Csr for T {
         regs: &mut Registers<Self>,
         csrs: &mut CsrRegisters<Self>,
     ) -> Result<(), Error> {
-        let csr = csrs
-            .get_mut(instruction.imm.as_u16() as usize)
-            .ok_or(Error::InvalidOpCode)?;
-        let src = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
-        let dest = ZeroOrRegister::from_u5(instruction.rd)
-            .fetch_mut(regs)
-            .ok_or(Error::InvalidOpCode)?;
-        *csr = match instruction.id() {
-            CSRRW => Csrrw::csrrw(src, dest, csr),
-            CSRRS => Csrrs::csrrs(src, dest, csr),
-            CSRRC => Csrrc::csrrc(src, dest, csr),
-            CSRRWI => Csrrwi::csrrwi(instruction.rs1, dest, csr),
-            CSRRSI => Csrrsi::csrrsi(instruction.rs1, dest, csr),
-            CSRRCI => Csrrci::csrrci(instruction.rs1, dest, csr),
-            _ => return Err(Error::InvalidOpCode),
-        };
+        if let ZeroOrRegister::Register(reg) = instruction.rs1.into() {
+            let csr = csrs
+                .get_mut(instruction.imm.as_u16() as usize)
+                .ok_or(Error::InvalidOpCode)?;
+            let src = reg.fetch(regs);
+            let dest = ZeroOrRegister::from_u5(instruction.rd)
+                .fetch_mut(regs)
+                .ok_or(Error::InvalidOpCode)?;
+            *csr = match instruction.id() {
+                CSRRW => Csrrw::csrrw(src, dest, csr),
+                CSRRS => Csrrs::csrrs(src, dest, csr),
+                CSRRC => Csrrc::csrrc(src, dest, csr),
+                CSRRWI => Csrrwi::csrrwi(instruction.rs1, dest, csr),
+                CSRRSI => Csrrsi::csrrsi(instruction.rs1, dest, csr),
+                CSRRCI => Csrrci::csrrci(instruction.rs1, dest, csr),
+                _ => return Err(Error::InvalidOpCode),
+            };
+        } else {
+            let dest = ZeroOrRegister::from_u5(instruction.rd)
+                .fetch_mut(regs)
+                .ok_or(Error::InvalidOpCode)?;
+            *dest = csrs.get(instruction.imm.as_u16() as usize);
+        }
         Ok(())
     }
 }
