@@ -69,6 +69,13 @@ pub struct Registers<T>([T; 31]);
 #[derive(Debug)]
 pub struct CsrRegisters<T>([T; 4096]);
 
+#[derive(Debug)]
+pub struct RegFile<T> {
+    pub xregs: Registers<T>,
+    // fregs: Registers<U>,
+    pub csrs: CsrRegisters<T>,
+}
+
 const _: [(); 0] = [(); ((Register::X31 as usize + 1) * core::mem::size_of::<u32>())
     - core::mem::size_of::<Registers<u32>>()];
 
@@ -147,6 +154,30 @@ impl<T> CsrRegisters<T> {
             return Some(&mut self.0[reg]);
         }
         None
+    }
+}
+
+impl<T: Copy + Default> Default for CsrRegisters<T> {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T> RegFile<T> {
+    #[inline(always)]
+    pub fn new(xregs: Registers<T>, csrs: CsrRegisters<T>) -> Self {
+        Self { xregs, csrs }
+    }
+}
+
+impl<T: Copy + Default> Default for RegFile<T> {
+    #[inline(always)]
+    fn default() -> Self {
+        Self {
+            xregs: Registers::default(),
+            csrs: CsrRegisters::default(),
+        }
     }
 }
 
