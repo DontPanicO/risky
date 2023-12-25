@@ -937,4 +937,91 @@ mod tests {
         assert_eq!(r12 as u32, (-1i64).wrapping_shr(3) as u64 as u32);
         assert_eq!(program_counter, 4);
     }
+
+    #[test]
+    fn test_csr_csrrw() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = 12;
+        *regfile.csrs.get_mut(1).unwrap() = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_001_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        let csr1 = regfile.csrs.get(1);
+        assert_eq!(r12, 24);
+        assert_eq!(csr1, 12);
+    }
+
+    #[test]
+    fn test_csr_csrrs() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = 12;
+        *regfile.csrs.get_mut(1).unwrap() = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_010_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        let csr1 = regfile.csrs.get(1);
+        assert_eq!(r12, 24);
+        assert_eq!(csr1, 24 | 12);
+    }
+
+    #[test]
+    fn test_csr_csrrc() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = 12;
+        *regfile.csrs.get_mut(1).unwrap() = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_011_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        let csr1 = regfile.csrs.get(1);
+        assert_eq!(r12, 24);
+        assert_eq!(csr1, 24 & !12);
+    }
+
+    #[test]
+    fn test_csr_csrrwi() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.csrs.get_mut(1).unwrap() = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_101_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        let csr1 = regfile.csrs.get(1);
+        assert_eq!(r12, 24);
+        assert_eq!(csr1, 13);
+    }
+
+    #[test]
+    fn test_csr_csrrsi() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.csrs.get_mut(1).unwrap() = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_110_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        let csr1 = regfile.csrs.get(1);
+        assert_eq!(r12, 24);
+        assert_eq!(csr1, 24 | 13);
+    }
+
+    #[test]
+    fn test_csr_csrrci() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.csrs.get_mut(1).unwrap() = 24;
+        let mut program_counter = 0u32;
+        let instruction = 0b000000000001_01101_111_01100_1110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        let csr1 = regfile.csrs.get(1);
+        assert_eq!(r12, 24);
+        assert_eq!(csr1, 24 & !13);
+    }
 }
