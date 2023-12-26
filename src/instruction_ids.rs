@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::decode::{U10, U3};
+use crate::decode::{U10, U12, U3};
 
 macro_rules! def_uconst {
     ($($v:vis const $name:ident: $t:ty = $n:expr;)*) => {
@@ -76,4 +76,30 @@ def_uconst! {
     pub const CSRRWI: U3 = 0b101;
     pub const CSRRSI: U3 = 0b110;
     pub const CSRRCI: U3 = 0b111;
+    // F Extension
+        // Load
+    pub const FLW: U3 = 0b010;
+        // Store
+    pub const FSW: U3 = 0b010;
+        // Math
+    pub const FADD_S: U12 = 0b00000_0000000;
+    pub const FSUB_S: U12 = 0b00000_0000100;
+    pub const FMUL_S: U12 = 0b00000_0001000;
+    pub const FDVI_S: U12 = 0b00000_0001100;
+    pub const FSQRT_S: U12 = 0b00000_0101100;
+    pub const FSGNJ_S: U12 = 0b00_0010000_000;
+    pub const FSGNJN_S: U12 = 0b00_0010000_001;
+    pub const FSGNJN_X: U12 = 0b00_0010000_010;
+    pub const FMIN_S: U12 = 0b00_0010100_000;
+    pub const FMAX_S: U12 = 0b00_0010100_001;
+    pub const FCVT_W_S: U12 = 0b1100000_00000;
+    pub const FCVT_WU_S: U12 = 0b1100000_00001;
+    pub const FMV_X_W: U12 = 0b00_1110000_000;
+    pub const FEQ_S: U12 = 0b00_1010000_010;
+    pub const FLT_S: U12 = 0b00_1010000_001;
+    pub const FLE_S: U12 = 0b00_1010000_000;
+    pub const FCLASS_S: U12 = 0b00_1110000_001;
+    pub const FCVT_S_W: U12 = 0b1101000_00000;
+    pub const FCVT_S_WU: U12 = 0b1101000_00001;
+    pub const FMV_W_X: U12 = 0b00_1111000_000;
 }
