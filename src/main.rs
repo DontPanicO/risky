@@ -31,8 +31,9 @@ fn main() {
         Class::ELF32 => {
             let mut program_counter = elfdata.ehdr.e_entry as u32;
             let xregs = registers::Registers::with_sp(256);
+            let fregs = registers::Registers::default();
             let csrs = registers::CsrRegisters::new();
-            let mut regfile = registers::RegFile::new(xregs, csrs);
+            let mut regfile = registers::RegFile::new(xregs, fregs, csrs, 0);
             loop {
                 // fetch instruction (libmem::memr(4))
                 let ins =
@@ -44,8 +45,9 @@ fn main() {
         Class::ELF64 => {
             let mut program_counter = elfdata.ehdr.e_entry;
             let xregs = registers::Registers::with_sp(256);
+            let fregs = registers::Registers::default();
             let csrs = registers::CsrRegisters::new();
-            let mut regfile = registers::RegFile::new(xregs, csrs);
+            let mut regfile = registers::RegFile::new(xregs, fregs, csrs, 0);
             loop {
                 // fetch instruction (libmem::memr(4))
                 let ins =
