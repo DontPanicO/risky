@@ -429,10 +429,16 @@ impl<T: Wrapping> Mulhsu for T {
     }
 }
 
-impl<T: Wrapping> Div for T {
+impl<T> Div for T
+where
+    T: Unsigned,
+    T: Wrapping,
+    <T as Unsigned>::Signed: Wrapping,
+    <T as Unsigned>::Signed: As<T>,
+{
     #[inline(always)]
     fn div(self, other: Self) -> Self {
-        T::wrapping_div(self, other)
+        self.r#as().wrapping_div(other.r#as()).r#as()
     }
 }
 
@@ -443,10 +449,16 @@ impl<T: Wrapping> Divu for T {
     }
 }
 
-impl<T: Wrapping> Rem for T {
+impl<T> Rem for T
+where
+    T: Unsigned,
+    T: Wrapping,
+    <T as Unsigned>::Signed: Wrapping,
+    <T as Unsigned>::Signed: As<T>,
+{
     #[inline(always)]
     fn rem(self, other: Self) -> Self {
-        T::wrapping_rem(self, other)
+        self.r#as().wrapping_rem(other.r#as()).r#as()
     }
 }
 

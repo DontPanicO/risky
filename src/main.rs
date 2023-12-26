@@ -589,6 +589,58 @@ mod tests {
     }
 
     #[test]
+    fn test_math_div() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = -12i32 as u32;
+        *regfile.xregs.get_mut(registers::Register::X14) = 3;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000001_01110_01101_100_01100_0110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, -4i32 as u32);
+    }
+
+    #[test]
+    fn test_math_divu() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = -12i32 as u32;
+        *regfile.xregs.get_mut(registers::Register::X14) = 3;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000001_01110_01101_101_01100_0110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, -12i32 as u32 / 3);
+    }
+
+    #[test]
+    fn test_math_rem() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = -13i32 as u32;
+        *regfile.xregs.get_mut(registers::Register::X14) = 3;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000001_01110_01101_110_01100_0110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, -1i32 as u32);
+    }
+
+    #[test]
+    fn test_math_remu() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = -13i32 as u32;
+        *regfile.xregs.get_mut(registers::Register::X14) = 3;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000001_01110_01101_111_01100_0110011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, -13i32 as u32 % 3);
+    }
+
+    #[test]
     fn test_mathi_addi() {
         let mut memory = [0u8; 0];
         let mut regfile = registers::RegFile::default();
