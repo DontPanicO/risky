@@ -85,11 +85,11 @@ def_uconst! {
     pub const FADD_S: U12 = 0b00000_0000000;
     pub const FSUB_S: U12 = 0b00000_0000100;
     pub const FMUL_S: U12 = 0b00000_0001000;
-    pub const FDVI_S: U12 = 0b00000_0001100;
+    pub const FDIV_S: U12 = 0b00000_0001100;
     pub const FSQRT_S: U12 = 0b00000_0101100;
     pub const FSGNJ_S: U12 = 0b00_0010000_000;
     pub const FSGNJN_S: U12 = 0b00_0010000_001;
-    pub const FSGNJN_X: U12 = 0b00_0010000_010;
+    pub const FSGNJNX_S: U12 = 0b00_0010000_010;
     pub const FMIN_S: U12 = 0b00_0010100_000;
     pub const FMAX_S: U12 = 0b00_0010100_001;
     pub const FCVT_W_S: U12 = 0b1100000_00000;

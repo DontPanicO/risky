@@ -94,6 +94,21 @@ impl R {
     pub const fn id(&self) -> U10 {
         unsafe { U10::new_unchecked((self.funct7.as_u16() << 3) | self.funct3.as_u16()) }
     }
+
+    #[inline(always)]
+    pub fn fid(&self) -> U12 {
+        let need_f3 = [0b0010000u16, 0b0010100, 0b1110000, 0b1010000];
+        let need_r2 = [0b1100000u16, 0b1101000];
+        unsafe {
+            U12::new_unchecked(if need_f3.contains(&self.funct7.as_u16()) {
+                self.funct7.as_u16() << 3 | self.funct3.as_u16()
+            } else if need_r2.contains(&self.funct7.as_u16()) {
+                self.funct7.as_u16() << 5 | self.rs2.as_u16()
+            } else {
+                self.funct7.as_u16()
+            })
+        }
+    }
 }
 
 impl From<u32> for R {
