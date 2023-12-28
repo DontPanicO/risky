@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::decode::{U12, U5};
 use crate::num::{As, Bitcast, Shiftable, Unsigned, UnsignedWrapping, Wrapping};
 
@@ -147,6 +149,86 @@ pub trait Remu {
     fn remu(self, other: Self) -> Self;
 }
 
+pub trait Fadd {
+    fn fadd(self, other: Self) -> Self;
+}
+
+pub trait Fsub {
+    fn fsub(self, other: Self) -> Self;
+}
+
+pub trait Fmul {
+    fn fmul(self, other: Self) -> Self;
+}
+
+pub trait Fdiv {
+    fn fdiv(self, other: Self) -> Self;
+}
+
+pub trait Fsqrt {
+    fn fsqrt(self, other: Self) -> Self;
+}
+
+pub trait Fsgnj {
+    fn fsgnj(self, other: Self) -> Self;
+}
+
+pub trait Fsgnjn {
+    fn fsgnjn(self, other: Self) -> Self;
+}
+
+pub trait Fsgnjx {
+    fn fsgnjx(self, other: Self) -> Self;
+}
+
+pub trait Fmin {
+    fn fmin(self, other: Self) -> Self;
+}
+
+pub trait Fmax {
+    fn fmax(self, other: Self) -> Self;
+}
+
+pub trait Fcvtw {
+    fn fcvtw(self, other: Self) -> Self;
+}
+
+pub trait Fcvtwu {
+    fn fcvtwu(self, other: Self) -> Self;
+}
+
+pub trait Fmvxw {
+    fn fmvxw(self, other: Self) -> Self;
+}
+
+pub trait Feq {
+    fn feq(self, other: Self) -> Self;
+}
+
+pub trait Flt {
+    fn flt(self, other: Self) -> Self;
+}
+
+pub trait Fle {
+    fn fle(self, other: Self) -> Self;
+}
+
+pub trait Fclass {
+    fn fclass(self, other: Self) -> Self;
+}
+
+pub trait Fcvtsw {
+    fn fcvtsw(self, other: Self) -> Self;
+}
+
+pub trait Fcvtswu {
+    fn fcvtswu(self, other: Self) -> Self;
+}
+
+pub trait Fmvwx {
+    fn fmvwx(self, other: Self) -> Self;
+}
+
 pub trait BaseMath:
     Add
     + Sub
@@ -180,6 +262,31 @@ pub trait BaseMath:
 
 pub trait BaseMathW:
     BaseMath + Addw + Subw + Sllw + Srlw + Sraw + Addiw + Slliw + Srliw + Sraiw
+{
+}
+
+pub trait BaseFloat:
+    Copy
+    + Fadd
+    + Fsub
+    + Fmul
+    + Fdiv
+    + Fsqrt
+    + Fsgnj
+    + Fsgnjn
+    + Fsgnjx
+    + Fmin
+    + Fmax
+    + Fcvtw
+    + Fcvtwu
+    + Fmvxw
+    + Feq
+    + Fle
+    + Flt
+    + Fclass
+    + Fcvtsw
+    + Fcvtswu
+    + Fmvwx
 {
 }
 
@@ -602,3 +709,79 @@ impl Sraiw for u64 {
 }
 
 impl BaseMathW for u64 {}
+
+impl Fadd for u32 {
+    #[inline(always)]
+    fn fadd(self, other: Self) -> Self {
+        (f32::from_bits(self) + f32::from_bits(other)).to_bits()
+    }
+}
+
+impl Fsub for u32 {
+    #[inline(always)]
+    fn fsub(self, other: Self) -> Self {
+        (f32::from_bits(self) - f32::from_bits(other)).to_bits()
+    }
+}
+
+impl Fmul for u32 {
+    #[inline(always)]
+    fn fmul(self, other: Self) -> Self {
+        (f32::from_bits(self) * f32::from_bits(other)).to_bits()
+    }
+}
+
+impl Fdiv for u32 {
+    #[inline(always)]
+    fn fdiv(self, other: Self) -> Self {
+        (f32::from_bits(self) / f32::from_bits(other)).to_bits()
+    }
+}
+
+impl Fsqrt for u32 {
+    #[inline(always)]
+    fn fsqrt(self, _: Self) -> Self {
+        f32::from_bits(self).sqrt().to_bits()
+    }
+}
+
+impl Fsgnj for u32 {
+    #[inline(always)]
+    fn fsgnj(self, other: Self) -> Self {
+        ((self << 1) >> 1) | ((other >> 31) << 31)
+    }
+}
+
+impl Fsgnjn for u32 {
+    #[inline(always)]
+    fn fsgnjn(self, other: Self) -> Self {
+        ((self << 1) >> 1) | (!(other >> 31) << 31)
+    }
+}
+
+impl Fsgnjx for u32 {
+    #[inline(always)]
+    fn fsgnjx(self, other: Self) -> Self {
+        self ^ ((other >> 31) << 31)
+    }
+}
+
+impl Fmin for u32 {
+    #[inline(always)]
+    fn fmin(self, other: Self) -> Self {
+        match f32::from_bits(self).total_cmp(&f32::from_bits(other)) {
+            Ordering::Less => self,
+            _ => other,
+        }
+    }
+}
+
+impl Fmax for u32 {
+    #[inline(always)]
+    fn fmax(self, other: Self) -> Self {
+        match f32::from_bits(self).total_cmp(&f32::from_bits(other)) {
+            Ordering::Greater => self,
+            _ => other,
+        }
+    }
+}

@@ -67,6 +67,10 @@ pub trait Csr: Sized {
     ) -> Result<(), Error>;
 }
 
+pub trait FloatS: Sized {
+    fn floats(instruction: R, fregs: &mut Registers<Self>) -> Result<(), Error>;
+}
+
 pub trait BaseInstruction:
     Math + MathI + ShiftI + Load + Store + Branch + Jal + Jalr + Lui + Auipc
 {
@@ -465,5 +469,43 @@ impl<T: Copy + Zero + BaseCsr> Csr for T {
             *dest = csrs.get(instruction.imm.as_u16() as usize);
         }
         Ok(())
+    }
+}
+
+impl FloatS for u32 {
+    #[inline(always)]
+    fn floats(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let f = match instruction.fid() {
+            FADD_S => Fadd::fadd,
+            FSUB_S => Fsub::fsub,
+            FMUL_S => Fmul::fmul,
+            FDIV_S => Fdiv::fdiv,
+            FSQRT_S => Fsqrt::fsqrt,
+            FSGNJ_S => Fsgnj::fsgnj,
+            FSGNJN_S => Fsgnjn::fsgnjn,
+            FSGNJNX_S => Fsgnjx::fsgnjx,
+            FMIN_S => Fmin::fmin,
+            FMAX_S => Fmax::fmax,
+            // FCVT_W_S => Fcvtw::fcvtw,
+            // FCVT_WU_S => Fcvtwu::fcvtwu,
+            // FMV_X_W => Fmvxw::fmvxw,
+            // FEQ_S => Feq::feq,
+            // FLT_S => Flt::flt,
+            // FLE_S => Fle::fle,
+            // FCLASS_S => Fclass::fclass,
+            // FCVT_S_W => Fcvtsw::fcvtsw,
+            // FCVT_S_WU => Fcvtswu::fcvtswu,
+            // FMV_W_X => Fmvwx::fmvwx,
+            _ => return Err(Error::InvalidOpCode),
+        };
+        match instruction.rd.into() {
+            ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
+            ZeroOrRegister::Register(reg) => {
+                let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+                let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+                *regs.get_mut(reg) = f(src1, src2);
+                Ok(())
+            }
+        }
     }
 }
