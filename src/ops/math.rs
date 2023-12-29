@@ -785,3 +785,25 @@ impl Fmax for u32 {
         }
     }
 }
+
+impl Feq for u32 {
+    #[inline(always)]
+    fn feq(self, other: Self) -> Self {
+        (self == other) as Self
+    }
+}
+
+impl Flt for u32 {
+    #[inline(always)]
+    fn flt(self, other: Self) -> Self {
+        println!("{} < {}", self, other);
+        (f32::from_bits(self) < f32::from_bits(other)) as Self
+    }
+}
+
+impl Fle for u32 {
+    #[inline(always)]
+    fn fle(self, other: Self) -> Self {
+        (f32::from_bits(self) <= f32::from_bits(other)) as Self
+    }
+}
