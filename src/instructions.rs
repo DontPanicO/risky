@@ -68,7 +68,7 @@ pub trait Csr: Sized {
 }
 
 pub trait FloatS: Sized {
-    fn floats(instruction: R, fregs: &mut Registers<Self>) -> Result<(), Error>;
+    fn floats(instruction: R, fregs: &mut Registers<Self>, xregs: &mut Registers<Self>) -> Result<(), Error>;
 }
 
 pub trait BaseInstruction:
@@ -474,36 +474,36 @@ impl<T: Copy + Zero + BaseCsr> Csr for T {
 
 impl FloatS for u32 {
     #[inline(always)]
-    fn floats(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
-        let f = match instruction.fid() {
-            FADD_S => Fadd::fadd,
-            FSUB_S => Fsub::fsub,
-            FMUL_S => Fmul::fmul,
-            FDIV_S => Fdiv::fdiv,
-            FSQRT_S => Fsqrt::fsqrt,
-            FSGNJ_S => Fsgnj::fsgnj,
-            FSGNJN_S => Fsgnjn::fsgnjn,
-            FSGNJNX_S => Fsgnjx::fsgnjx,
-            FMIN_S => Fmin::fmin,
-            FMAX_S => Fmax::fmax,
-            // FCVT_W_S => Fcvtw::fcvtw,
-            // FCVT_WU_S => Fcvtwu::fcvtwu,
-            // FMV_X_W => Fmvxw::fmvxw,
-            // FEQ_S => Feq::feq,
-            // FLT_S => Flt::flt,
-            // FLE_S => Fle::fle,
-            // FCLASS_S => Fclass::fclass,
-            // FCVT_S_W => Fcvtsw::fcvtsw,
-            // FCVT_S_WU => Fcvtswu::fcvtswu,
-            // FMV_W_X => Fmvwx::fmvwx,
-            _ => return Err(Error::InvalidOpCode),
-        };
+    fn floats(instruction: R, fregs: &mut Registers<Self>, xregs: &mut Registers<Self>) -> Result<(), Error> {
+        let fid = instruction.fid();
         match instruction.rd.into() {
             ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
             ZeroOrRegister::Register(reg) => {
-                let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
-                let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
-                *regs.get_mut(reg) = f(src1, src2);
+                let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
+                let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
+                match fid {
+                    FADD_S => { *fregs.get_mut(reg) = Fadd::fadd(src1, src2) }
+                    FSUB_S => { *fregs.get_mut(reg) = Fsub::fsub(src1, src2) }
+                    FMUL_S => { *fregs.get_mut(reg) = Fmul::fmul(src1, src2) }
+                    FDIV_S => { *fregs.get_mut(reg) = Fdiv::fdiv(src1, src2) }
+                    FSQRT_S => { *fregs.get_mut(reg) = Fsqrt::fsqrt(src1, src2) }
+                    FSGNJ_S => { *fregs.get_mut(reg) = Fsgnj::fsgnj(src1, src2) }
+                    FSGNJN_S => { *fregs.get_mut(reg) = Fsgnjn::fsgnjn(src1, src2) }
+                    FSGNJNX_S => { *fregs.get_mut(reg) = Fsgnjx::fsgnjx(src1, src2) }
+                    FMIN_S => { *fregs.get_mut(reg) = Fmin::fmin(src1, src2) }
+                    FMAX_S => { *fregs.get_mut(reg) = Fmax::fmax(src1, src2) }
+                    // FCVT_W_S => Fcvtw::fcvtw,
+                    // FCVT_WU_S => Fcvtwu::fcvtwu,
+                    // FMV_X_W => Fmvxw::fmvxw,
+                    FEQ_S => { *xregs.get_mut(reg) = Feq::feq(src1, src2) }
+                    FLT_S => { *xregs.get_mut(reg) = Flt::flt(src1, src2) }
+                    FLE_S => { *xregs.get_mut(reg) = Fle::fle(src1, src2) }
+                    // FCLASS_S => Fclass::fclass,
+                    // FCVT_S_W => Fcvtsw::fcvtsw,
+                    // FCVT_S_WU => Fcvtswu::fcvtswu,
+                    // FMV_W_X => Fmvwx::fmvwx,
+                    _ => return Err(Error::InvalidOpCode),
+                }
                 Ok(())
             }
         }
