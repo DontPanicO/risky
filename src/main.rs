@@ -1344,4 +1344,88 @@ mod tests {
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 0);
     }
+
+    #[test]
+    fn test_float_s_fcvtws() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X13) = (-3.1f32).to_bits();
+        let mut program_counter = 0u32;
+        let instruction = 0b1100000_00000_01101_000_01100_1010011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, -3i32 as u32);
+    }
+
+    #[test]
+    fn test_float_s_fcvtwus() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X13) = (-3.1f32).to_bits();
+        let mut program_counter = 0u32;
+        let instruction = 0b1100000_00001_01101_000_01100_1010011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, 0);
+    }
+
+    #[test]
+    fn test_float_s_fmvxw() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X13) = (-3.1f32).to_bits();
+        let mut program_counter = 0u32;
+        let instruction = 0b1110000_00000_01101_000_01100_1010011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, (-3.1f32).to_bits());
+    }
+
+    #[test]
+    fn test_float_s_fclass() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X13) = (3.1f32).to_bits();
+        let mut program_counter = 0u32;
+        let instruction = 0b1110000_00000_01101_001_01100_1010011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 6);
+    }
+
+    #[test]
+    fn test_float_s_fclass_02() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X13) = (-3.1f32).to_bits();
+        let mut program_counter = 0u32;
+        let instruction = 0b1110000_00000_01101_001_01100_1010011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 1);
+    }
+
+    #[test]
+    fn test_float_s_fclass_03() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X13) = (f32::INFINITY).to_bits();
+        let mut program_counter = 0u32;
+        let instruction = 0b1110000_00000_01101_001_01100_1010011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 7);
+    }
+
+    #[test]
+    fn test_float_s_fclass_04() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X13) = (f32::INFINITY).to_bits() | 1 << 31;
+        let mut program_counter = 0u32;
+        let instruction = 0b1110000_00000_01101_001_01100_1010011;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, 1 << 0);
+    }
 }

@@ -1,4 +1,5 @@
 use std::cmp::Ordering;
+use std::num::FpCategory;
 
 use crate::decode::{U12, U5};
 use crate::num::{As, Bitcast, Shiftable, Unsigned, UnsignedWrapping, Wrapping};
@@ -805,5 +806,70 @@ impl Fle for u32 {
     #[inline(always)]
     fn fle(self, other: Self) -> Self {
         (f32::from_bits(self) <= f32::from_bits(other)) as Self
+    }
+}
+
+impl Fcvtw for u32 {
+    #[inline(always)]
+    fn fcvtw(self, _: Self) -> Self {
+        f32::from_bits(self) as i32 as u32
+    }
+}
+
+impl Fcvtwu for u32 {
+    #[inline(always)]
+    fn fcvtwu(self, _: Self) -> Self {
+        f32::from_bits(self) as u32
+    }
+}
+
+impl Fmvxw for u32 {
+    #[inline(always)]
+    fn fmvxw(self, _: Self) -> Self {
+        self
+    }
+}
+
+impl Fclass for u32 {
+    #[inline(always)]
+    fn fclass(self, _: Self) -> Self {
+        let f = f32::from_bits(self);
+        match f.classify() {
+            FpCategory::Infinite => {
+                if f.is_sign_negative() {
+                    1 << 0
+                } else {
+                    1 << 7
+                }
+            }
+            FpCategory::Normal => {
+                if f.is_sign_negative() {
+                    1 << 1
+                } else {
+                    1 << 6
+                }
+            }
+            FpCategory::Subnormal => {
+                if f.is_sign_negative() {
+                    1 << 2
+                } else {
+                    1 << 5
+                }
+            }
+            FpCategory::Zero => {
+                if f.is_sign_negative() {
+                    1 << 3
+                } else {
+                    1 << 4
+                }
+            }
+            FpCategory::Nan => {
+                if f.to_bits() == 0x7fc00000 {
+                    1 << 8
+                } else {
+                    1 << 9
+                }
+            }
+        }
     }
 }
