@@ -137,7 +137,8 @@ impl Step for u32 {
             0b1010011 => {
                 let instruction = decode::R::from_u32(encoded);
                 println!("{:?}", instruction);
-                instructions::FloatS::floats(instruction, &mut regfile.fregs, &mut regfile.xregs).unwrap();
+                instructions::FloatS::floats(instruction, &mut regfile.fregs, &mut regfile.xregs)
+                    .unwrap();
                 pc.increment();
             }
             _ => panic!("Invalid OPCode"),
