@@ -97,7 +97,7 @@ impl R {
 
     #[inline(always)]
     pub fn fid(&self) -> U12 {
-        let need_f3 = [0b0010000u16, 0b0010100, 0b1110000, 0b1010000];
+        let need_f3 = [0b0010000u16, 0b0010100, 0b1110000, 0b1010000, 0b1111000];
         let need_r2 = [0b1100000u16, 0b1101000];
         unsafe {
             U12::new_unchecked(if need_f3.contains(&self.funct7.as_u16()) {
