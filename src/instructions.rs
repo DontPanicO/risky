@@ -483,13 +483,12 @@ impl FloatS for u32 {
         fregs: &mut Registers<Self>,
         xregs: &mut Registers<Self>,
     ) -> Result<(), Error> {
-        let fid = instruction.fid();
         match instruction.rd.into() {
             ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
             ZeroOrRegister::Register(reg) => {
                 let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                 let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                match fid {
+                match instruction.fid() {
                     FADD_S => *fregs.get_mut(reg) = Fadd::fadd(src1, src2),
                     FSUB_S => *fregs.get_mut(reg) = Fsub::fsub(src1, src2),
                     FMUL_S => *fregs.get_mut(reg) = Fmul::fmul(src1, src2),
