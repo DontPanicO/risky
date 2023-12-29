@@ -873,3 +873,24 @@ impl Fclass for u32 {
         }
     }
 }
+
+impl Fcvtsw for u32 {
+    #[inline(always)]
+    fn fcvtsw(self, _: Self) -> Self {
+        (self as i32 as f32).to_bits()
+    }
+}
+
+impl Fcvtswu for u32 {
+    #[inline(always)]
+    fn fcvtswu(self, _: Self) -> Self {
+        (self as f32).to_bits()
+    }
+}
+
+impl Fmvwx for u32 {
+    #[inline(always)]
+    fn fmvwx(self, _: Self) -> Self {
+        self
+    }
+}
