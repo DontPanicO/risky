@@ -190,12 +190,12 @@ pub trait Fmax {
     fn fmax(self, other: Self) -> Self;
 }
 
-pub trait Fcvtw {
-    fn fcvtw(self, other: Self) -> Self;
+pub trait Fcvtws {
+    fn fcvtws(self, other: Self) -> Self;
 }
 
-pub trait Fcvtwu {
-    fn fcvtwu(self, other: Self) -> Self;
+pub trait Fcvtwus {
+    fn fcvtwus(self, other: Self) -> Self;
 }
 
 pub trait Fmvxw {
@@ -278,8 +278,8 @@ pub trait BaseFloat:
     + Fsgnjx
     + Fmin
     + Fmax
-    + Fcvtw
-    + Fcvtwu
+    + Fcvtws
+    + Fcvtwus
     + Fmvxw
     + Feq
     + Fle
@@ -809,16 +809,16 @@ impl Fle for u32 {
     }
 }
 
-impl Fcvtw for u32 {
+impl Fcvtws for u32 {
     #[inline(always)]
-    fn fcvtw(self, _: Self) -> Self {
+    fn fcvtws(self, _: Self) -> Self {
         f32::from_bits(self) as i32 as u32
     }
 }
 
-impl Fcvtwu for u32 {
+impl Fcvtwus for u32 {
     #[inline(always)]
-    fn fcvtwu(self, _: Self) -> Self {
+    fn fcvtwus(self, _: Self) -> Self {
         f32::from_bits(self) as u32
     }
 }
