@@ -75,6 +75,24 @@ pub trait FloatS: Sized {
     ) -> Result<(), Error>;
 }
 
+pub trait Fload: Sized {
+    fn fload(
+        instruction: I,
+        xregs: &mut Registers<Self>,
+        fregs: &mut Registers<Self>,
+        memory: &mut [u8],
+    ) -> Result<(), Error>;
+}
+
+pub trait Fstore: Sized {
+    fn fstore(
+        instruction: S,
+        xregs: &mut Registers<Self>,
+        fregs: &mut Registers<Self>,
+        memory: &mut [u8],
+    ) -> Result<(), Error>;
+}
+
 pub trait BaseInstruction:
     Math + MathI + ShiftI + Load + Store + Branch + Jal + Jalr + Lui + Auipc
 {
@@ -583,6 +601,50 @@ impl FloatS for u32 {
                 }
                 Ok(())
             }
+        }
+    }
+}
+
+impl Fload for u32 {
+    #[inline(always)]
+    fn fload(
+        instruction: I,
+        xregs: &mut Registers<Self>,
+        fregs: &mut Registers<Self>,
+        memory: &mut [u8],
+    ) -> Result<(), Error> {
+        let dest_reg =
+            if let ZeroOrRegister::Register(reg) = ZeroOrRegister::from_u5(instruction.rd) {
+                reg
+            } else {
+                return Err(Error::InvalidOpCode);
+            };
+        let offset = ZeroOrRegister::from_u5(instruction.rs1)
+            .fetch(xregs)
+            .wrapping_add_signed(instruction.imm.sign_extend() as i32)
+            as usize;
+        *fregs.get_mut(dest_reg) = match instruction.id() {
+            FLW => Flw::flw(memory, offset)?,
+            _ => return Err(Error::InvalidOpCode),
+        };
+        Ok(())
+    }
+}
+
+impl Fstore for u32 {
+    #[inline(always)]
+    fn fstore(
+        instruction: S,
+        xregs: &mut Registers<Self>,
+        fregs: &mut Registers<Self>,
+        memory: &mut [u8],
+    ) -> Result<(), Error> {
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(xregs);
+        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
+        let offset = src1.wrapping_add_signed(instruction.imm.sign_extend() as i32) as usize;
+        match instruction.id() {
+            FSW => Fsw::fsw(src2, memory, offset),
+            _ => Err(Error::InvalidOpCode),
         }
     }
 }

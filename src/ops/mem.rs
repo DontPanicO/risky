@@ -47,8 +47,20 @@ pub trait Sd: Sized {
     fn sd(src: Self, memory: &mut [u8], addr: usize) -> Result<(), Error>;
 }
 
+pub trait Flw: Sized {
+    fn flw(memory: &mut [u8], addr: usize) -> Result<Self, Error>;
+}
+
+pub trait Fsw: Sized {
+    fn fsw(src: Self, memory: &mut [u8], addr: usize) -> Result<(), Error>;
+}
+
 pub trait BaseLoad: Lb + Lbu + Lh + Lhu + Lw + Lwu + Ld {}
 pub trait BaseStore: Sb + Sh + Sw + Sd {}
+
+// when D and/or Q extensions are implemented we could have something like:
+// pub trait FloatLoad: Flw + Fld + Flq {}
+// pub trait FloatStore: Fsw + Fsd + Fsq {}
 
 impl Lb for u32 {
     #[inline(always)]
@@ -178,5 +190,33 @@ impl Sd for u64 {
     #[inline(always)]
     fn sd(src: Self, memory: &mut [u8], addr: usize) -> Result<(), Error> {
         write(&U64::new(src), memory, addr)
+    }
+}
+
+impl Flw for u32 {
+    #[inline(always)]
+    fn flw(memory: &mut [u8], addr: usize) -> Result<Self, Error> {
+        Ok(read::<U32>(memory, addr)?.as_u32())
+    }
+}
+
+impl Fsw for u32 {
+    #[inline(always)]
+    fn fsw(src: Self, memory: &mut [u8], addr: usize) -> Result<(), Error> {
+        write(&U32::new(src), memory, addr)
+    }
+}
+
+impl Flw for u64 {
+    #[inline(always)]
+    fn flw(memory: &mut [u8], addr: usize) -> Result<Self, Error> {
+        Ok(read::<U32>(memory, addr)?.as_u32() as u64)
+    }
+}
+
+impl Fsw for u64 {
+    #[inline(always)]
+    fn fsw(src: Self, memory: &mut [u8], addr: usize) -> Result<(), Error> {
+        write(&U32::new(src as _), memory, addr)
     }
 }

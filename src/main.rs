@@ -141,6 +141,30 @@ impl Step for u32 {
                     .unwrap();
                 pc.increment();
             }
+            0b0000111 => {
+                let instruction = decode::I::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Fload::fload(
+                    instruction,
+                    &mut regfile.xregs,
+                    &mut regfile.fregs,
+                    memory,
+                )
+                .unwrap();
+                pc.increment();
+            }
+            0b0100111 => {
+                let instruction = decode::S::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Fstore::fstore(
+                    instruction,
+                    &mut regfile.xregs,
+                    &mut regfile.fregs,
+                    memory,
+                )
+                .unwrap();
+                pc.increment();
+            }
             _ => panic!("Invalid OPCode"),
         }
     }
@@ -1463,5 +1487,33 @@ mod tests {
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.fregs.get(registers::Register::X12);
         assert_eq!(r12, 37);
+    }
+
+    #[test]
+    fn test_fload_word() {
+        let mut memory = [0u8; 64];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = 32;
+        memory[32..36].copy_from_slice(&[255, 255, 0, 0]);
+        let mut program_counter = 4u32;
+        let instruction = 0b000000000000_01101_010_01100_0000111;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.fregs.get(registers::Register::X12);
+        assert_eq!(r12, f32::from_le_bytes([255, 255, 0, 0]).to_bits());
+        assert_eq!(program_counter, 8);
+    }
+
+    #[test]
+    fn test_fstore_word() {
+        let mut memory = [0u8; 64];
+        let mut regfile = registers::RegFile::default();
+        *regfile.fregs.get_mut(registers::Register::X12) = u32::from_le_bytes([255, 255, 0, 0]);
+        *regfile.xregs.get_mut(registers::Register::X13) = 32;
+        let mut program_counter = 4u32;
+        let instruction = 0b0000000_01100_01101_010_00000_0100111;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let data = mem::read::<mem::U32>(&memory, 32).unwrap().as_u32();
+        assert_eq!(data, f32::from_le_bytes([255, 255, 0, 0]).to_bits());
+        assert_eq!(program_counter, 8);
     }
 }
