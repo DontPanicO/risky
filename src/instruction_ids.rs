@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use crate::decode::{U10, U12, U3};
+use crate::decode::{U10, U12, U2, U3};
 
 macro_rules! def_uconst {
     ($($v:vis const $name:ident: $t:ty = $n:expr;)*) => {
@@ -81,7 +81,12 @@ def_uconst! {
     pub const FLW: U3 = 0b010;
         // Store
     pub const FSW: U3 = 0b010;
-        // Math
+        // Mixed Math
+    pub const FMADD_S: U2 = 0b00;
+    pub const FMSUB_S: U2 = 0b00;
+    pub const FNMSUB_S: U2 = 0b00;
+    pub const FNADD_S: U2 = 0b00;
+        // Base Math
     pub const FADD_S: U12 = 0b00000_0000000;
     pub const FSUB_S: U12 = 0b00000_0000100;
     pub const FMUL_S: U12 = 0b00000_0001000;

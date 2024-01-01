@@ -1,4 +1,4 @@
-use crate::decode::{Shift, B, I, J, R, S, U, U12, U5};
+use crate::decode::{Shift, B, I, J, R, R4, S, U, U12, U5};
 use crate::error::Error;
 use crate::instruction_ids::*;
 use crate::num::Unsigned;
@@ -91,6 +91,22 @@ pub trait Fstore: Sized {
         fregs: &mut Registers<Self>,
         memory: &mut [u8],
     ) -> Result<(), Error>;
+}
+
+pub trait FmaddS: Sized {
+    fn fmadd(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error>;
+}
+
+pub trait FmsubS: Sized {
+    fn fmsub(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error>;
+}
+
+pub trait FnmsubS: Sized {
+    fn fnmsub(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error>;
+}
+
+pub trait FnmaddS: Sized {
+    fn fnmadd(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error>;
 }
 
 pub trait BaseInstruction:
@@ -646,5 +662,78 @@ impl Fstore for u32 {
             FSW => Fsw::fsw(src2, memory, offset),
             _ => Err(Error::InvalidOpCode),
         }
+    }
+}
+
+// TODO: switch to macro when implementing for u64
+
+impl FmaddS for u32 {
+    #[inline(always)]
+    fn fmadd(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+        let src3 = ZeroOrRegister::from_u5(instruction.rs3).fetch(regs);
+        match instruction.rd.into() {
+            ZeroOrRegister::Register(reg) => {
+                *regs.get_mut(reg) = f32::from_bits(src1)
+                    .mul_add(f32::from_bits(src2), f32::from_bits(src3))
+                    .to_bits()
+            }
+            _ => return Err(Error::InvalidOpCode),
+        };
+        Ok(())
+    }
+}
+
+impl FmsubS for u32 {
+    #[inline(always)]
+    fn fmsub(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+        let src3 = ZeroOrRegister::from_u5(instruction.rs3).fetch(regs);
+        match instruction.rd.into() {
+            ZeroOrRegister::Register(reg) => {
+                *regs.get_mut(reg) =
+                    (f32::from_bits(src1) * f32::from_bits(src2) - f32::from_bits(src3)).to_bits()
+            }
+            _ => return Err(Error::InvalidOpCode),
+        };
+        Ok(())
+    }
+}
+
+impl FnmsubS for u32 {
+    #[inline(always)]
+    fn fnmsub(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+        let src3 = ZeroOrRegister::from_u5(instruction.rs3).fetch(regs);
+        match instruction.rd.into() {
+            ZeroOrRegister::Register(reg) => {
+                *regs.get_mut(reg) = (-(f32::from_bits(src1) * f32::from_bits(src2))
+                    + f32::from_bits(src3))
+                .to_bits()
+            }
+            _ => return Err(Error::InvalidOpCode),
+        };
+        Ok(())
+    }
+}
+
+impl FnmaddS for u32 {
+    #[inline(always)]
+    fn fnmadd(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+        let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+        let src3 = ZeroOrRegister::from_u5(instruction.rs3).fetch(regs);
+        match instruction.rd.into() {
+            ZeroOrRegister::Register(reg) => {
+                *regs.get_mut(reg) = (-(f32::from_bits(src1) * f32::from_bits(src2))
+                    - f32::from_bits(src3))
+                .to_bits()
+            }
+            _ => return Err(Error::InvalidOpCode),
+        };
+        Ok(())
     }
 }
