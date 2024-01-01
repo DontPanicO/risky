@@ -33,7 +33,7 @@ fn main() {
             let xregs = registers::Registers::with_sp(256);
             let fregs = registers::Registers::default();
             let csrs = registers::CsrRegisters::new();
-            let mut regfile = registers::RegFile::new(xregs, fregs, csrs, 0);
+            let mut regfile = registers::RegFile::new(xregs, fregs, csrs);
             loop {
                 // fetch instruction (libmem::memr(4))
                 let ins =
@@ -47,7 +47,7 @@ fn main() {
             let xregs = registers::Registers::with_sp(256);
             let fregs = registers::Registers::default();
             let csrs = registers::CsrRegisters::new();
-            let mut regfile = registers::RegFile::new(xregs, fregs, csrs, 0);
+            let mut regfile = registers::RegFile::new(xregs, fregs, csrs);
             loop {
                 // fetch instruction (libmem::memr(4))
                 let ins =

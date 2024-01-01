@@ -74,7 +74,6 @@ pub struct RegFile<T> {
     pub xregs: Registers<T>,
     pub fregs: Registers<T>,
     pub csrs: CsrRegisters<T>,
-    pub fcsr: T,
 }
 
 const _: [(); 0] = [(); ((Register::X31 as usize + 1) * core::mem::size_of::<u32>())
@@ -167,13 +166,8 @@ impl<T: Copy + Default> Default for CsrRegisters<T> {
 
 impl<T> RegFile<T> {
     #[inline(always)]
-    pub fn new(xregs: Registers<T>, fregs: Registers<T>, csrs: CsrRegisters<T>, fcsr: T) -> Self {
-        Self {
-            xregs,
-            fregs,
-            csrs,
-            fcsr,
-        }
+    pub fn new(xregs: Registers<T>, fregs: Registers<T>, csrs: CsrRegisters<T>) -> Self {
+        Self { xregs, fregs, csrs }
     }
 }
 
@@ -184,7 +178,6 @@ impl<T: Copy + Default> Default for RegFile<T> {
             xregs: Registers::default(),
             fregs: Registers::default(),
             csrs: CsrRegisters::default(),
-            fcsr: T::default(),
         }
     }
 }
