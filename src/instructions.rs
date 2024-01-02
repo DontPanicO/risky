@@ -510,6 +510,14 @@ impl<T: Copy + Zero + BaseCsr> Csr for T {
     }
 }
 
+// can't be generic.
+// It is not required to implement Fadd for u64:
+// FloatS could be made generic over T adding
+// u32: As<T> trait bound, thus casting the op
+// result with .r#as() (noop in case of u32 as u32).
+// However to properly cast an u64 to u32 for
+// usage with f32::from_bits we should do:
+// Fadd::fadd((src1 >> 32) as u32, (src2 >> 32) as u32)
 impl FloatS for u32 {
     #[inline(always)]
     fn floats(
