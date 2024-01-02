@@ -1,7 +1,7 @@
 use crate::decode::{Shift, B, I, J, R, R4, S, U, U12, U5};
 use crate::error::Error;
 use crate::instruction_ids::*;
-use crate::num::Unsigned;
+use crate::num::{As, Unsigned};
 use crate::ops::*;
 use crate::registers::{CsrRegisters, Registers, Zero, ZeroOrRegister};
 
@@ -107,6 +107,10 @@ pub trait FnmsubS: Sized {
 
 pub trait FnmaddS: Sized {
     fn fnmadd(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error>;
+}
+
+pub trait Bmath: Sized {
+    fn bmath(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error>;
 }
 
 pub trait BaseInstruction:
@@ -743,5 +747,33 @@ impl FnmaddS for u32 {
             _ => return Err(Error::InvalidOpCode),
         };
         Ok(())
+    }
+}
+
+impl<T> Bmath for T
+where
+    T: Copy,
+    T: Zero,
+    T: Unsigned,
+    T: As<u8>,
+    i8: As<<T as Unsigned>::Signed>,
+    u8: As<T>,
+    bool: As<T>,
+{
+    #[inline(always)]
+    fn bmath(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
+        let f = match instruction.id() {
+            BADD => Badd::badd,
+            _ => return Err(Error::InvalidOpCode),
+        };
+        match instruction.rd.into() {
+            ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
+            ZeroOrRegister::Register(reg) => {
+                let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
+                let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
+                *regs.get_mut(reg) = f(src1, src2);
+                Ok(())
+            }
+        }
     }
 }

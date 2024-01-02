@@ -150,6 +150,50 @@ pub trait Remu {
     fn remu(self, other: Self) -> Self;
 }
 
+// Custom Byte Math extension
+
+pub trait Badd {
+    fn badd(self, other: Self) -> Self;
+}
+
+pub trait Bsub {
+    fn bsub(self, other: Self) -> Self;
+}
+
+pub trait Bsll {
+    fn bsll(self, other: Self) -> Self;
+}
+
+pub trait Bslt {
+    fn bslt(self, other: Self) -> Self;
+}
+
+pub trait Bsltu {
+    fn bsltu(self, other: Self) -> Self;
+}
+
+pub trait Bxor {
+    fn bxor(self, other: Self) -> Self;
+}
+
+pub trait Bsrl {
+    fn bsrl(self, other: Self) -> Self;
+}
+
+pub trait Bsra {
+    fn bsra(self, other: Self) -> Self;
+}
+
+pub trait Bor {
+    fn bor(self, other: Self) -> Self;
+}
+
+pub trait Band {
+    fn band(self, other: Self) -> Self;
+}
+
+// F extension
+
 pub trait Fadd {
     fn fadd(self, other: Self) -> Self;
 }
@@ -710,6 +754,120 @@ impl Sraiw for u64 {
 }
 
 impl BaseMathW for u64 {}
+
+impl<T> Badd for T
+where
+    T: As<u8>,
+    u8: As<T>,
+{
+    #[inline(always)]
+    fn badd(self, other: Self) -> Self {
+        self.r#as().wrapping_add(other.r#as()).r#as()
+    }
+}
+
+impl<T> Bsub for T
+where
+    T: As<u8>,
+    u8: As<T>,
+{
+    #[inline(always)]
+    fn bsub(self, other: Self) -> Self {
+        self.r#as().wrapping_sub(other.r#as()).r#as()
+    }
+}
+
+impl<T> Bsll for T
+where
+    T: As<u8>,
+    u8: As<T>,
+{
+    #[inline(always)]
+    fn bsll(self, other: Self) -> Self {
+        self.r#as().wrapping_shl(other.r#as() as u32).r#as()
+    }
+}
+
+impl<T> Bslt for T
+where
+    T: As<u8>,
+    bool: As<T>,
+{
+    #[inline(always)]
+    fn bslt(self, other: Self) -> Self {
+        ((self.r#as() as i8) < (other.r#as() as i8)).r#as()
+    }
+}
+
+impl<T> Bsltu for T
+where
+    T: As<u8>,
+    bool: As<T>,
+{
+    #[inline(always)]
+    fn bsltu(self, other: Self) -> Self {
+        (self.r#as() < other.r#as()).r#as()
+    }
+}
+
+impl<T> Bxor for T
+where
+    T: As<u8>,
+    u8: As<T>,
+{
+    #[inline(always)]
+    fn bxor(self, other: Self) -> Self {
+        (self.r#as() ^ other.r#as()).r#as()
+    }
+}
+
+impl<T> Bsrl for T
+where
+    T: As<u8>,
+    u8: As<T>,
+{
+    #[inline(always)]
+    fn bsrl(self, other: Self) -> Self {
+        self.r#as().wrapping_shr(other.r#as() as u32).r#as()
+    }
+}
+
+impl<T> Bsra for T
+where
+    T: Unsigned,
+    T: As<u8>,
+    i8: As<<T as Unsigned>::Signed>,
+{
+    #[inline(always)]
+    fn bsra(self, other: Self) -> Self {
+        (<T as As<u8>>::r#as(self) as i8)
+            .wrapping_shr(<T as As<u8>>::r#as(other) as u32)
+            .r#as()
+            .bitcast()
+    }
+}
+
+impl<T> Bor for T
+where
+    T: As<u8>,
+    u8: As<T>,
+{
+    #[inline(always)]
+    fn bor(self, other: Self) -> Self {
+        (self.r#as() | other.r#as()).r#as()
+    }
+}
+
+impl<T> Band for T
+where
+    T: As<u8>,
+    u8: As<T>,
+{
+    #[inline(always)]
+    fn band(self, other: Self) -> Self {
+        (self.r#as() & other.r#as()).r#as()
+    }
+}
 
 impl Fadd for u32 {
     #[inline(always)]

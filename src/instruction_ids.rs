@@ -107,4 +107,15 @@ def_uconst! {
     pub const FCVT_S_W: U12 = 0b1101000_00000;
     pub const FCVT_S_WU: U12 = 0b1101000_00001;
     pub const FMV_W_X: U12 = 0b00_1111000_000;
+    // Custom Extension Byte Math
+    pub const BADD: U10 = 0b0000010_000;
+    pub const BSUB: U10 = 0b0100010_000;
+    pub const BSLL: U10 = 0b0000010_001;
+    pub const BSLT: U10 = 0b0000010_010;
+    pub const BSLTU: U10 = 0b0000010_011;
+    pub const BXOR: U10 = 0b0000010_100;
+    pub const BSRL: U10 = 0b0000010_101;
+    pub const BSRA: U10 = 0b0100010_101;
+    pub const BOR: U10 = 0b0000010_110;
+    pub const BAND: U10 = 0b0000010_111;
 }

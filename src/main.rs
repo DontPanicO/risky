@@ -189,6 +189,12 @@ impl Step for u32 {
                 instructions::FnmaddS::fnmadd(instruction, &mut regfile.fregs).unwrap();
                 pc.increment();
             }
+            0b0110101 => {
+                let instruction = decode::R::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Bmath::bmath(instruction, &mut regfile.xregs).unwrap();
+                pc.increment();
+            }
             _ => panic!("Invalid OPCode"),
         }
     }
@@ -279,6 +285,12 @@ impl Step for u64 {
                 let instruction = decode::I::from_u32(encoded);
                 println!("{:?}", instruction);
                 instructions::Csr::csr(instruction, &mut regfile.xregs, &mut regfile.csrs).unwrap();
+                pc.increment();
+            }
+            0b0110101 => {
+                let instruction = decode::R::from_u32(encoded);
+                println!("{:?}", instruction);
+                instructions::Bmath::bmath(instruction, &mut regfile.xregs).unwrap();
                 pc.increment();
             }
             _ => panic!("Invalid OPCode"),
@@ -1598,6 +1610,20 @@ mod tests {
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.fregs.get(registers::Register::X12);
         assert_eq!(r12, (-2.74f32).to_bits());
+        assert_eq!(program_counter, 4);
+    }
+
+    #[test]
+    fn test_bmath_badd() {
+        let mut memory = [0u8; 0];
+        let mut regfile = registers::RegFile::default();
+        *regfile.xregs.get_mut(registers::Register::X13) = 100;
+        *regfile.xregs.get_mut(registers::Register::X14) = 10;
+        let mut program_counter = 0u32;
+        let instruction = 0b0000010_01110_01101_000_01100_0110101;
+        step(instruction, &mut regfile, &mut program_counter, &mut memory);
+        let r12 = regfile.xregs.get(registers::Register::X12);
+        assert_eq!(r12, 110);
         assert_eq!(program_counter, 4);
     }
 }
