@@ -756,7 +756,6 @@ where
     T: Zero,
     T: Unsigned,
     T: As<u8>,
-    i8: As<<T as Unsigned>::Signed>,
     u8: As<T>,
     bool: As<T>,
 {
@@ -764,6 +763,15 @@ where
     fn bmath(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
         let f = match instruction.id() {
             BADD => Badd::badd,
+            BSUB => Bsub::bsub,
+            BSLL => Bsll::bsll,
+            BSLT => Bslt::bslt,
+            BSLTU => Bsltu::bsltu,
+            BXOR => Bxor::bxor,
+            BSRL => Bsrl::bsrl,
+            BSRA => Bsra::bsra,
+            BOR => Bor::bor,
+            BAND => Band::band,
             _ => return Err(Error::InvalidOpCode),
         };
         match instruction.rd.into() {

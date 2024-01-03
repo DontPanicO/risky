@@ -836,14 +836,12 @@ impl<T> Bsra for T
 where
     T: Unsigned,
     T: As<u8>,
-    i8: As<<T as Unsigned>::Signed>,
+    u8: As<T>,
 {
     #[inline(always)]
     fn bsra(self, other: Self) -> Self {
-        (<T as As<u8>>::r#as(self) as i8)
-            .wrapping_shr(<T as As<u8>>::r#as(other) as u32)
+        ((<T as As<u8>>::r#as(self) as i8).wrapping_shr(<T as As<u8>>::r#as(other) as u32) as u8)
             .r#as()
-            .bitcast()
     }
 }
 
