@@ -294,6 +294,7 @@ pub trait BaseMath:
     + Slli
     + Srli
     + Srai
+    // M ratified extension
     + Mul
     + Mulh
     + Mulhsu
@@ -302,6 +303,17 @@ pub trait BaseMath:
     + Divu
     + Rem
     + Remu
+    // Byte Math custom extension
+    + Badd
+    + Bsub
+    + Bsll
+    + Bslt
+    + Bsltu
+    + Bxor
+    + Bsrl
+    + Bsra
+    + Bor
+    + Band
 {
 }
 
@@ -649,7 +661,17 @@ impl<
             + Div
             + Divu
             + Rem
-            + Remu,
+            + Remu
+            + Badd
+            + Bsub
+            + Bsll
+            + Bslt
+            + Bsltu
+            + Bxor
+            + Bsrl
+            + Bsra
+            + Bor
+            + Band,
     > BaseMath for T
 {
 }

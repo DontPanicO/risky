@@ -1,7 +1,7 @@
 use crate::decode::{Shift, B, I, J, R, R4, S, U, U12, U5};
 use crate::error::Error;
 use crate::instruction_ids::*;
-use crate::num::{As, Unsigned};
+use crate::num::Unsigned;
 use crate::ops::*;
 use crate::registers::{CsrRegisters, Registers, Zero, ZeroOrRegister};
 
@@ -109,10 +109,6 @@ pub trait FnmaddS: Sized {
     fn fnmadd(instruction: R4, regs: &mut Registers<Self>) -> Result<(), Error>;
 }
 
-pub trait Bmath: Sized {
-    fn bmath(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error>;
-}
-
 pub trait BaseInstruction:
     Math + MathI + ShiftI + Load + Store + Branch + Jal + Jalr + Lui + Auipc
 {
@@ -135,6 +131,7 @@ impl<T: Copy + BaseMath + Zero> Math for T {
             SRA => Sra::sra,
             OR => Or::or,
             AND => And::and,
+            // M extension
             MUL => Mul::mul,
             MULH => Mulh::mulh,
             MULHSU => Mulhsu::mulhsu,
@@ -143,6 +140,17 @@ impl<T: Copy + BaseMath + Zero> Math for T {
             DIVU => Divu::divu,
             REM => Rem::rem,
             REMU => Remu::remu,
+            // Byte Math extension
+            BADD => Badd::badd,
+            BSUB => Bsub::bsub,
+            BSLL => Bsll::bsll,
+            BSLT => Bslt::bslt,
+            BSLTU => Bsltu::bsltu,
+            BXOR => Bxor::bxor,
+            BSRL => Bsrl::bsrl,
+            BSRA => Bsra::bsra,
+            BOR => Bor::bor,
+            BAND => Band::band,
             _ => return Err(Error::InvalidOpCode),
         };
 
@@ -747,41 +755,5 @@ impl FnmaddS for u32 {
             _ => return Err(Error::InvalidOpCode),
         };
         Ok(())
-    }
-}
-
-impl<T> Bmath for T
-where
-    T: Copy,
-    T: Zero,
-    T: Unsigned,
-    T: As<u8>,
-    u8: As<T>,
-    bool: As<T>,
-{
-    #[inline(always)]
-    fn bmath(instruction: R, regs: &mut Registers<Self>) -> Result<(), Error> {
-        let f = match instruction.id() {
-            BADD => Badd::badd,
-            BSUB => Bsub::bsub,
-            BSLL => Bsll::bsll,
-            BSLT => Bslt::bslt,
-            BSLTU => Bsltu::bsltu,
-            BXOR => Bxor::bxor,
-            BSRL => Bsrl::bsrl,
-            BSRA => Bsra::bsra,
-            BOR => Bor::bor,
-            BAND => Band::band,
-            _ => return Err(Error::InvalidOpCode),
-        };
-        match instruction.rd.into() {
-            ZeroOrRegister::Zero => Err(Error::InvalidOpCode),
-            ZeroOrRegister::Register(reg) => {
-                let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(regs);
-                let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(regs);
-                *regs.get_mut(reg) = f(src1, src2);
-                Ok(())
-            }
-        }
     }
 }

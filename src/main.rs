@@ -189,12 +189,6 @@ impl Step for u32 {
                 instructions::FnmaddS::fnmadd(instruction, &mut regfile.fregs).unwrap();
                 pc.increment();
             }
-            0b0110101 => {
-                let instruction = decode::R::from_u32(encoded);
-                println!("{:?}", instruction);
-                instructions::Bmath::bmath(instruction, &mut regfile.xregs).unwrap();
-                pc.increment();
-            }
             _ => panic!("Invalid OPCode"),
         }
     }
@@ -285,12 +279,6 @@ impl Step for u64 {
                 let instruction = decode::I::from_u32(encoded);
                 println!("{:?}", instruction);
                 instructions::Csr::csr(instruction, &mut regfile.xregs, &mut regfile.csrs).unwrap();
-                pc.increment();
-            }
-            0b0110101 => {
-                let instruction = decode::R::from_u32(encoded);
-                println!("{:?}", instruction);
-                instructions::Bmath::bmath(instruction, &mut regfile.xregs).unwrap();
                 pc.increment();
             }
             _ => panic!("Invalid OPCode"),
@@ -1620,7 +1608,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 100;
         *regfile.xregs.get_mut(registers::Register::X14) = 10;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_000_01100_0110101;
+        let instruction = 0b0000010_01110_01101_000_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 110);
@@ -1634,7 +1622,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 100;
         *regfile.xregs.get_mut(registers::Register::X14) = 10;
         let mut program_counter = 0u32;
-        let instruction = 0b0100010_01110_01101_000_01100_0110101;
+        let instruction = 0b0100010_01110_01101_000_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 90);
@@ -1648,7 +1636,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 1;
         *regfile.xregs.get_mut(registers::Register::X14) = 5;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_001_01100_0110101;
+        let instruction = 0b0000010_01110_01101_001_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 1 << 5);
@@ -1661,7 +1649,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = -100i32 as u32;
         *regfile.xregs.get_mut(registers::Register::X14) = 10;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_010_01100_0110101;
+        let instruction = 0b0000010_01110_01101_010_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 1);
@@ -1674,7 +1662,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 100;
         *regfile.xregs.get_mut(registers::Register::X14) = -10i32 as u32;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_010_01100_0110101;
+        let instruction = 0b0000010_01110_01101_010_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 0);
@@ -1687,7 +1675,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = -100i32 as u32;
         *regfile.xregs.get_mut(registers::Register::X14) = 10;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_011_01100_0110101;
+        let instruction = 0b0000010_01110_01101_011_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 0);
@@ -1700,7 +1688,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = -254i32 as u32;
         *regfile.xregs.get_mut(registers::Register::X14) = 10;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_011_01100_0110101;
+        let instruction = 0b0000010_01110_01101_011_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 1);
@@ -1713,7 +1701,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 32;
         *regfile.xregs.get_mut(registers::Register::X14) = 10;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_100_01100_0110101;
+        let instruction = 0b0000010_01110_01101_100_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 32 ^ 10);
@@ -1726,7 +1714,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 255;
         *regfile.xregs.get_mut(registers::Register::X14) = 6;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_101_01100_0110101;
+        let instruction = 0b0000010_01110_01101_101_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 255 >> 6);
@@ -1739,7 +1727,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = -128i32 as u32;
         *regfile.xregs.get_mut(registers::Register::X14) = 6;
         let mut program_counter = 0u32;
-        let instruction = 0b0100010_01110_01101_101_01100_0110101;
+        let instruction = 0b0100010_01110_01101_101_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, (-128i8 >> 6) as u8 as u32);
@@ -1752,7 +1740,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 32;
         *regfile.xregs.get_mut(registers::Register::X14) = 6;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_110_01100_0110101;
+        let instruction = 0b0000010_01110_01101_110_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 32 | 6);
@@ -1765,7 +1753,7 @@ mod tests {
         *regfile.xregs.get_mut(registers::Register::X13) = 32;
         *regfile.xregs.get_mut(registers::Register::X14) = 6;
         let mut program_counter = 0u32;
-        let instruction = 0b0000010_01110_01101_111_01100_0110101;
+        let instruction = 0b0000010_01110_01101_111_01100_0110011;
         step(instruction, &mut regfile, &mut program_counter, &mut memory);
         let r12 = regfile.xregs.get(registers::Register::X12);
         assert_eq!(r12, 32 & 6);
