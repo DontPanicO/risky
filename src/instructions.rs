@@ -1,7 +1,7 @@
 use crate::decode::{Shift, B, I, J, R, R4, S, U, U12, U5};
 use crate::error::Error;
 use crate::instruction_ids::*;
-use crate::num::Unsigned;
+use crate::num::{As, Unsigned};
 use crate::ops::*;
 use crate::registers::{CsrRegisters, Registers, Zero, ZeroOrRegister};
 
@@ -522,15 +522,15 @@ impl<T: Copy + Zero + BaseCsr> Csr for T {
     }
 }
 
-// can't be generic.
-// It is not required to implement Fadd for u64:
-// FloatS could be made generic over T adding
-// u32: As<T> trait bound, thus casting the op
-// result with .r#as() (noop in case of u32 as u32).
-// However to properly cast an u64 to u32 for
-// usage with f32::from_bits we should do:
-// Fadd::fadd((src1 >> 32) as u32, (src2 >> 32) as u32)
-impl FloatS for u32 {
+// it's ok since casting between integers of the
+// same size is a noop
+impl<T> FloatS for T
+where
+    T: Copy,
+    T: Zero,
+    T: As<u32>,
+    u32: As<T>,
+{
     #[inline(always)]
     fn floats(
         instruction: R,
@@ -544,94 +544,94 @@ impl FloatS for u32 {
                     FADD_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fadd::fadd(src1, src2);
+                        *fregs.get_mut(reg) = Fadd::fadd(src1.r#as(), src2.r#as()).r#as();
                     }
                     FSUB_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fsub::fsub(src1, src2);
+                        *fregs.get_mut(reg) = Fsub::fsub(src1.r#as(), src2.r#as()).r#as();
                     }
                     FMUL_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fmul::fmul(src1, src2);
+                        *fregs.get_mut(reg) = Fmul::fmul(src1.r#as(), src2.r#as()).r#as();
                     }
                     FDIV_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fdiv::fdiv(src1, src2);
+                        *fregs.get_mut(reg) = Fdiv::fdiv(src1.r#as(), src2.r#as()).r#as();
                     }
                     FSQRT_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
-                        *fregs.get_mut(reg) = Fsqrt::fsqrt(src1, 0);
+                        *fregs.get_mut(reg) = Fsqrt::fsqrt(src1.r#as(), 0).r#as();
                     }
                     FSGNJ_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fsgnj::fsgnj(src1, src2);
+                        *fregs.get_mut(reg) = Fsgnj::fsgnj(src1.r#as(), src2.r#as()).r#as();
                     }
                     FSGNJN_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fsgnjn::fsgnjn(src1, src2);
+                        *fregs.get_mut(reg) = Fsgnjn::fsgnjn(src1.r#as(), src2.r#as()).r#as();
                     }
                     FSGNJNX_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fsgnjx::fsgnjx(src1, src2);
+                        *fregs.get_mut(reg) = Fsgnjx::fsgnjx(src1.r#as(), src2.r#as()).r#as();
                     }
                     FMIN_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fmin::fmin(src1, src2);
+                        *fregs.get_mut(reg) = Fmin::fmin(src1.r#as(), src2.r#as()).r#as();
                     }
                     FMAX_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *fregs.get_mut(reg) = Fmax::fmax(src1, src2);
+                        *fregs.get_mut(reg) = Fmax::fmax(src1.r#as(), src2.r#as()).r#as();
                     }
                     FCVT_W_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
-                        *xregs.get_mut(reg) = Fcvtws::fcvtws(src1, 0);
+                        *xregs.get_mut(reg) = Fcvtws::fcvtws(src1.r#as(), 0).r#as();
                     }
                     FCVT_WU_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
-                        *xregs.get_mut(reg) = Fcvtwus::fcvtwus(src1, 0);
+                        *xregs.get_mut(reg) = Fcvtwus::fcvtwus(src1.r#as(), 0).r#as();
                     }
                     FMV_X_W => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
-                        *xregs.get_mut(reg) = Fmvxw::fmvxw(src1, 0);
+                        *xregs.get_mut(reg) = Fmvxw::fmvxw(src1.r#as(), 0).r#as();
                     }
                     FEQ_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *xregs.get_mut(reg) = Feq::feq(src1, src2);
+                        *xregs.get_mut(reg) = Feq::feq(src1.r#as(), src2.r#as()).r#as();
                     }
                     FLT_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *xregs.get_mut(reg) = Flt::flt(src1, src2);
+                        *xregs.get_mut(reg) = Flt::flt(src1.r#as(), src2.r#as()).r#as();
                     }
                     FLE_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
                         let src2 = ZeroOrRegister::from_u5(instruction.rs2).fetch(fregs);
-                        *xregs.get_mut(reg) = Fle::fle(src1, src2);
+                        *xregs.get_mut(reg) = Fle::fle(src1.r#as(), src2.r#as()).r#as();
                     }
                     FCLASS_S => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(fregs);
-                        *xregs.get_mut(reg) = Fclass::fclass(src1, 0);
+                        *xregs.get_mut(reg) = Fclass::fclass(src1.r#as(), 0).r#as();
                     }
                     FCVT_S_W => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(xregs);
-                        *fregs.get_mut(reg) = Fcvtsw::fcvtsw(src1, 0);
+                        *fregs.get_mut(reg) = Fcvtsw::fcvtsw(src1.r#as(), 0).r#as();
                     }
                     FCVT_S_WU => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(xregs);
-                        *fregs.get_mut(reg) = Fcvtswu::fcvtswu(src1, 0);
+                        *fregs.get_mut(reg) = Fcvtswu::fcvtswu(src1.r#as(), 0).r#as();
                     }
                     FMV_W_X => {
                         let src1 = ZeroOrRegister::from_u5(instruction.rs1).fetch(xregs);
-                        *fregs.get_mut(reg) = Fmvwx::fmvwx(src1, 0);
+                        *fregs.get_mut(reg) = Fmvwx::fmvwx(src1.r#as(), 0).r#as();
                     }
                     _ => return Err(Error::InvalidOpCode),
                 }
