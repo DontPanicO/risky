@@ -642,11 +642,11 @@ mod tests {
     fn sign_extend() {
         assert_eq!(
             U13::new_truncate(0b1111111111110u16).sign_extend(),
-            unsafe { core::mem::transmute(0b1111111111111110u16) }
+            unsafe { core::mem::transmute::<u16, i16>(0b1111111111111110u16) }
         );
         assert_eq!(
             U13::new_truncate(0b0111111111110u16).sign_extend(),
-            unsafe { core::mem::transmute(0b0000111111111110u16) }
+            unsafe { core::mem::transmute::<u16, i16>(0b0000111111111110u16) }
         );
     }
 

@@ -317,11 +317,13 @@ pub trait BaseMath:
 {
 }
 
+#[allow(unused)]
 pub trait BaseMathW:
     BaseMath + Addw + Subw + Sllw + Srlw + Sraw + Addiw + Slliw + Srliw + Sraiw
 {
 }
 
+#[allow(unused)]
 pub trait BaseFloat:
     Copy
     + Fadd
@@ -680,7 +682,7 @@ impl Addw for u64 {
     #[inline(always)]
     fn addw(self, other: Self) -> Self {
         unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(
+            core::mem::transmute(core::mem::transmute::<u32, i32>(
                 (self as u32).wrapping_add(other as u32),
             ) as i64)
         }
@@ -691,7 +693,7 @@ impl Subw for u64 {
     #[inline(always)]
     fn subw(self, other: Self) -> Self {
         unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(
+            core::mem::transmute(core::mem::transmute::<u32, i32>(
                 (self as u32).wrapping_sub(other as u32),
             ) as i64)
         }
@@ -702,7 +704,7 @@ impl Sllw for u64 {
     #[inline(always)]
     fn sllw(self, other: Self) -> Self {
         unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(
+            core::mem::transmute(core::mem::transmute::<u32, i32>(
                 (self as u32).wrapping_shl(other as u32),
             ) as i64)
         }
@@ -713,7 +715,7 @@ impl Srlw for u64 {
     #[inline(always)]
     fn srlw(self, other: Self) -> Self {
         unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(
+            core::mem::transmute(core::mem::transmute::<u32, i32>(
                 (self as u32).wrapping_shr(other as u32),
             ) as i64)
         }
@@ -725,7 +727,7 @@ impl Sraw for u64 {
     fn sraw(self, other: Self) -> Self {
         unsafe {
             core::mem::transmute(
-                core::mem::transmute::<_, i32>(self as u32).wrapping_shr(other as u32) as i64,
+                core::mem::transmute::<u32, i32>(self as u32).wrapping_shr(other as u32) as i64,
             )
         }
     }
@@ -735,7 +737,7 @@ impl Addiw for u64 {
     #[inline(always)]
     fn addiw(self, other: U12) -> Self {
         unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(
+            core::mem::transmute(core::mem::transmute::<u32, i32>(
                 (self as u32).wrapping_add_signed(other.sign_extend() as i32),
             ) as i64)
         }
@@ -746,7 +748,7 @@ impl Slliw for u64 {
     #[inline(always)]
     fn slliw(self, other: Self) -> Self {
         unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(
+            core::mem::transmute(core::mem::transmute::<u32, i32>(
                 (self as u32).wrapping_shl(other as u32),
             ) as i64)
         }
@@ -757,7 +759,7 @@ impl Srliw for u64 {
     #[inline(always)]
     fn srliw(self, other: Self) -> Self {
         unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(
+            core::mem::transmute(core::mem::transmute::<u32, i32>(
                 (self as u32).wrapping_shr(other as u32),
             ) as i64)
         }
@@ -769,7 +771,7 @@ impl Sraiw for u64 {
     fn sraiw(self, other: Self) -> Self {
         unsafe {
             core::mem::transmute(
-                core::mem::transmute::<_, i32>(self as u32).wrapping_shr(other as u32) as i64,
+                core::mem::transmute::<u32, i32>(self as u32).wrapping_shr(other as u32) as i64,
             )
         }
     }

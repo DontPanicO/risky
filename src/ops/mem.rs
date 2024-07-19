@@ -55,7 +55,10 @@ pub trait Fsw: Sized {
     fn fsw(src: Self, memory: &mut [u8], addr: usize) -> Result<(), Error>;
 }
 
+#[allow(unused)]
 pub trait BaseLoad: Lb + Lbu + Lh + Lhu + Lw + Lwu + Ld {}
+
+#[allow(unused)]
 pub trait BaseStore: Sb + Sh + Sw + Sd {}
 
 // when D and/or Q extensions are implemented we could have something like:
@@ -65,7 +68,7 @@ pub trait BaseStore: Sb + Sh + Sw + Sd {}
 impl Lb for u32 {
     #[inline(always)]
     fn lb(memory: &[u8], addr: usize) -> Result<Self, Error> {
-        Ok(unsafe { core::mem::transmute(read::<i8>(memory, addr)? as i32) })
+        Ok(unsafe { core::mem::transmute::<i32, u32>(read::<i8>(memory, addr)? as i32) })
     }
 }
 
@@ -79,7 +82,7 @@ impl Lbu for u32 {
 impl Lh for u32 {
     #[inline(always)]
     fn lh(memory: &[u8], addr: usize) -> Result<Self, Error> {
-        Ok(unsafe { core::mem::transmute(read::<I16>(memory, addr)?.as_i16() as i32) })
+        Ok(unsafe { core::mem::transmute::<i32, u32>(read::<I16>(memory, addr)?.as_i16() as i32) })
     }
 }
 
@@ -93,14 +96,14 @@ impl Lhu for u32 {
 impl Lw for u32 {
     #[inline(always)]
     fn lw(memory: &[u8], addr: usize) -> Result<Self, Error> {
-        Ok(unsafe { core::mem::transmute(read::<I32>(memory, addr)?.as_i32()) })
+        Ok(unsafe { core::mem::transmute::<i32, u32>(read::<I32>(memory, addr)?.as_i32()) })
     }
 }
 
 impl Lb for u64 {
     #[inline(always)]
     fn lb(memory: &[u8], addr: usize) -> Result<Self, Error> {
-        Ok(unsafe { core::mem::transmute(read::<i8>(memory, addr)? as i64) })
+        Ok(unsafe { core::mem::transmute::<i64, u64>(read::<i8>(memory, addr)? as i64) })
     }
 }
 
@@ -114,7 +117,7 @@ impl Lbu for u64 {
 impl Lh for u64 {
     #[inline(always)]
     fn lh(memory: &[u8], addr: usize) -> Result<Self, Error> {
-        Ok(unsafe { core::mem::transmute(read::<I16>(memory, addr)?.as_i16() as i64) })
+        Ok(unsafe { core::mem::transmute::<i64, u64>(read::<I16>(memory, addr)?.as_i16() as i64) })
     }
 }
 
@@ -128,7 +131,7 @@ impl Lhu for u64 {
 impl Lw for u64 {
     #[inline(always)]
     fn lw(memory: &[u8], addr: usize) -> Result<Self, Error> {
-        Ok(unsafe { core::mem::transmute(read::<I32>(memory, addr)?.as_i32() as i64) })
+        Ok(unsafe { core::mem::transmute::<i64, u64>(read::<I32>(memory, addr)?.as_i32() as i64) })
     }
 }
 
@@ -142,7 +145,7 @@ impl Lwu for u64 {
 impl Ld for u64 {
     #[inline(always)]
     fn ld(memory: &[u8], addr: usize) -> Result<Self, Error> {
-        Ok(unsafe { core::mem::transmute(read::<I64>(memory, addr)?.as_i64()) })
+        Ok(unsafe { core::mem::transmute::<i64, u64>(read::<I64>(memory, addr)?.as_i64()) })
     }
 }
 

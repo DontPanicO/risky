@@ -24,6 +24,7 @@ pub trait Bgeu {
     fn bgeu(self, other: Self) -> bool;
 }
 
+#[allow(unused)]
 pub trait BaseBranch: Beq + Bne + Blt + Bge + Bltu + Bgeu {}
 
 impl<T> Beq for T

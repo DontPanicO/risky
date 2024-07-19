@@ -217,7 +217,7 @@ impl ZeroOrRegister {
         if raw == 0 {
             Self::Zero
         } else {
-            Self::Register(core::mem::transmute(raw.wrapping_sub(1)))
+            Self::Register(core::mem::transmute::<u8, Register>(raw.wrapping_sub(1)))
         }
     }
 

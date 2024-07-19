@@ -458,8 +458,11 @@ impl Lui for u64 {
         let dest = ZeroOrRegister::from_u5(instruction.rd)
             .fetch_mut(regs)
             .ok_or(Error::InvalidOpCode)?;
-        *dest =
-            unsafe { core::mem::transmute(core::mem::transmute::<_, i32>(instruction.imm) as i64) };
+        *dest = unsafe {
+            core::mem::transmute::<i64, u64>(
+                core::mem::transmute::<u32, i32>(instruction.imm) as i64
+            )
+        };
         Ok(())
     }
 }
@@ -482,7 +485,9 @@ impl Auipc for u64 {
             .fetch_mut(regs)
             .ok_or(Error::InvalidOpCode)?;
         *dest = pc.wrapping_add(unsafe {
-            core::mem::transmute(core::mem::transmute::<_, i32>(instruction.imm) as i64)
+            core::mem::transmute::<i64, u64>(
+                core::mem::transmute::<u32, i32>(instruction.imm) as i64
+            )
         });
         Ok(())
     }
